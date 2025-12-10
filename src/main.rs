@@ -41,7 +41,7 @@ fn output_continuous() {
 /// Output raw bytes from GPU to stdout (for piping to dieharder/ent)
 #[cfg(feature = "gpu")]
 fn gpu_output_raw(count: usize) {
-    let mut rng = GpuNbodyEntropy::from_seed([42, 0, 0, 0, 0, 0, 0, 0]);
+    let mut rng = GpuNbodyEntropy::from_seed([42u8; 32]);
     let mut stdout = io::stdout().lock();
     let mut buf = [0u8; 8192];
 
@@ -59,7 +59,7 @@ fn gpu_output_raw(count: usize) {
 /// Output continuous stream of GPU-generated random bytes
 #[cfg(feature = "gpu")]
 fn gpu_output_continuous() {
-    let mut rng = GpuNbodyEntropy::from_seed([42, 0, 0, 0, 0, 0, 0, 0]);
+    let mut rng = GpuNbodyEntropy::from_seed([42u8; 32]);
     let mut stdout = io::stdout().lock();
     let mut buf = [0u8; 8192];
 
@@ -82,7 +82,7 @@ fn run_nist_tests(sample_size: usize) {
     );
     println!("╚══════════════════════════════════════════════════════════════╝\n");
 
-    let mut rng = NbodyEntropy::from_seed([42, 0, 0, 0, 0, 0, 0, 0]);
+    let mut rng = NbodyEntropy::from_seed([42u8; 32]);
     let start = Instant::now();
 
     // Collect samples
@@ -536,7 +536,7 @@ fn matrix_rank(matrix: &[[u8; 32]; 32]) -> u32 {
 fn benchmark() {
     println!("Benchmarking CPU generation speed...\n");
 
-    let mut rng = NbodyEntropy::from_seed([12, 34, 56, 78, 90, 12, 34, 56]);
+    let mut rng = NbodyEntropy::from_seed([12u8; 32]);
     let iterations = 1_000_000;
 
     let start = Instant::now();
@@ -560,7 +560,7 @@ fn benchmark_gpu() {
     println!("Benchmarking GPU generation speed...\n");
 
     println!("Initializing GPU...");
-    let mut rng = GpuNbodyEntropy::from_seed([12, 34, 56, 78, 90, 12, 34, 56]);
+    let mut rng = GpuNbodyEntropy::from_seed([12u8; 32]);
     println!("GPU initialized.\n");
 
     // Warm up
@@ -603,7 +603,7 @@ fn run_gpu_tests(sample_size: usize) {
     println!("╚══════════════════════════════════════════════════════════════╝\n");
 
     println!("Initializing GPU...");
-    let mut rng = GpuNbodyEntropy::from_seed([42, 0, 0, 0, 0, 0, 0, 0]);
+    let mut rng = GpuNbodyEntropy::from_seed([42u8; 32]);
     println!("GPU initialized.\n");
 
     let start = Instant::now();

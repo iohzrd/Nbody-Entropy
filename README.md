@@ -48,7 +48,7 @@ The slingshot mechanic is key - without it, particles eventually clump into a si
 4. Extract random bytes from mixed state
 5. Repeat
 
-This acts as an **entropy amplifier** - a small amount of true randomness (8 bytes) is expanded into a high-throughput stream (~5 GB/s) through chaotic dynamics.
+This acts as an **entropy amplifier** - true randomness (32 bytes / 256 bits) is expanded into a high-throughput stream (~5 GB/s) through chaotic dynamics.
 
 ## Performance
 
@@ -104,8 +104,8 @@ use rand_core::{RngCore, SeedableRng};
 // Create from OS entropy (/dev/urandom on Linux)
 let mut rng = NbodyEntropy::new();
 
-// Or from explicit seed (for reproducible sequences)
-let mut rng = NbodyEntropy::from_seed([1, 2, 3, 4, 5, 6, 7, 8]);
+// Or from explicit 32-byte seed (for reproducible sequences)
+let mut rng = NbodyEntropy::from_seed([0u8; 32]);
 
 // Generate random values (implements RngCore)
 let value: u64 = rng.next_u64();

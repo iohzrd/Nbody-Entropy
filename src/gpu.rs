@@ -108,7 +108,7 @@ impl std::fmt::Debug for GpuNbodyEntropy {
 impl GpuNbodyEntropy {
     /// Create a new GPU entropy generator, seeded from OS entropy (/dev/urandom on Linux)
     pub fn new() -> Self {
-        let mut seed = [0u8; 8];
+        let mut seed = [0u8; 32];
         getrandom::fill(&mut seed).expect("Failed to get entropy from OS");
         Self::from_seed(seed)
     }
@@ -237,11 +237,13 @@ impl Default for GpuNbodyEntropy {
 }
 
 impl SeedableRng for GpuNbodyEntropy {
-    type Seed = [u8; 8];
+    type Seed = [u8; 32];
 
     fn from_seed(seed: Self::Seed) -> Self {
-        let seed_u64 = u64::from_le_bytes(seed);
-        let initial_state = mix_seed(seed_u64);
+        // Use full 32-byte seed (256 bits of entropy)
+        let seed_u64 = u64::from_le_bytes(seed[0..8].try_into().unwrap());
+        let seed_u64_2 = u64::from_le_bytes(seed[8..16].try_into().unwrap());
+        let initial_state = mix_seed(seed_u64 ^ seed_u64_2);
 
         // Initialize particles for n-body simulation
         let mut state = initial_state;

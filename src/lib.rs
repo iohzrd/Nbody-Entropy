@@ -166,18 +166,17 @@ impl Default for NbodyEntropy {
 impl NbodyEntropy {
     /// Create a new system, seeded from OS entropy (/dev/urandom on Linux)
     pub fn new() -> Self {
-        let mut seed = [0u8; 8];
+        let mut seed = [0u8; 32];
         getrandom::fill(&mut seed).expect("Failed to get entropy from OS");
         Self::from_seed(seed)
     }
 
     /// Create with custom particle count
     pub fn with_particle_count(particle_count: usize) -> Self {
-        let mut seed = [0u8; 8];
+        let mut seed = [0u8; 32];
         getrandom::fill(&mut seed).expect("Failed to get entropy from OS");
-        let seed = u64::from_le_bytes(seed);
 
-        let mut rng = Self::from_seed(seed.to_le_bytes());
+        let mut rng = Self::from_seed(seed);
         rng.set_particle_count(particle_count);
         rng
     }
@@ -519,19 +518,18 @@ fn splitmix64(state: &mut u64) -> u64 {
 }
 
 impl SeedableRng for NbodyEntropy {
-    type Seed = [u8; 8];
+    type Seed = [u8; 32];
 
     fn from_seed(seed: Self::Seed) -> Self {
-        // Expand seed using splitmix64 (matches GPU approach)
-        let mut state = u64::from_le_bytes(seed);
+        // Use full 32-byte seed as initial state (256 bits of entropy)
+        let initial_state = seed;
 
-        // Generate 32-byte initial state
-        let mut initial_state = [0u8; 32];
-        for chunk in initial_state.chunks_exact_mut(8) {
-            chunk.copy_from_slice(&splitmix64(&mut state).to_le_bytes());
-        }
+        // Use first 8 bytes to seed particle generation, then expand
+        let mut state = u64::from_le_bytes(seed[0..8].try_into().unwrap());
+        // Mix in more seed bytes for better distribution
+        state ^= u64::from_le_bytes(seed[8..16].try_into().unwrap());
+        state = splitmix64(&mut state);
 
-        // Use expanded state to seed particle generation
         let mut particles = Vec::with_capacity(MAX_PARTICLE_COUNT);
 
         for i in 0..MAX_PARTICLE_COUNT {
@@ -604,8 +602,9 @@ mod tests {
 
     #[test]
     fn test_deterministic() {
-        let mut rng1 = NbodyEntropy::from_seed([1, 2, 3, 4, 5, 6, 7, 8]);
-        let mut rng2 = NbodyEntropy::from_seed([1, 2, 3, 4, 5, 6, 7, 8]);
+        let seed = [1u8; 32];
+        let mut rng1 = NbodyEntropy::from_seed(seed);
+        let mut rng2 = NbodyEntropy::from_seed(seed);
 
         for _ in 0..100 {
             assert_eq!(rng1.next_u64(), rng2.next_u64());
@@ -614,8 +613,8 @@ mod tests {
 
     #[test]
     fn test_different_seeds() {
-        let mut rng1 = NbodyEntropy::from_seed([1, 2, 3, 4, 5, 6, 7, 8]);
-        let mut rng2 = NbodyEntropy::from_seed([8, 7, 6, 5, 4, 3, 2, 1]);
+        let mut rng1 = NbodyEntropy::from_seed([1u8; 32]);
+        let mut rng2 = NbodyEntropy::from_seed([2u8; 32]);
 
         let mut same = 0;
         for _ in 0..100 {
@@ -640,7 +639,7 @@ mod tests {
 
     #[test]
     fn test_bit_distribution() {
-        let mut rng = NbodyEntropy::from_seed([42, 0, 0, 0, 0, 0, 0, 0]);
+        let mut rng = NbodyEntropy::from_seed([42u8; 32]);
         let samples = 10000;
 
         let mut ones = 0u64;
