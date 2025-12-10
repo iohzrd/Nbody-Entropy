@@ -47,11 +47,11 @@ The slingshot mechanic is key - without it, particles eventually clump into a si
 | Version | Speed | Notes |
 |---------|-------|-------|
 | CPU | ~0.87 MB/s | Full n-body simulation |
-| GPU | **~2 GB/s** | wgpu compute shaders, batched generation |
+| GPU | **~5 GB/s** | wgpu compute shaders, batched generation |
 
 ```bash
 # GPU benchmark
-cargo run --release --features gpu -- gpu-benchmark
+cargo run --release --features gpu --bin nbody-entropy -- gpu-benchmark
 ```
 
 ## Usage
@@ -60,19 +60,19 @@ cargo run --release --features gpu -- gpu-benchmark
 
 ```bash
 # Run built-in NIST test suite
-cargo run --release -- test
+cargo run --release --bin nbody-entropy -- test
 
 # GPU test suite (much faster)
-cargo run --release --features gpu -- gpu-test
+cargo run --release --features gpu --bin nbody-entropy -- gpu-test
 
 # Output raw bytes for external tools
-cargo run --release --features gpu -- gpu-raw 10000000 | ent
+cargo run --release --features gpu --bin nbody-entropy -- gpu-raw 10000000 | ent
 
 # Continuous stream for dieharder
-cargo run --release --features gpu -- gpu-stream | dieharder -a -g 200
+cargo run --release --features gpu --bin nbody-entropy -- gpu-stream | dieharder -a -g 200
 
 # Benchmark
-cargo run --release --features gpu -- gpu-benchmark
+cargo run --release --features gpu --bin nbody-entropy -- gpu-benchmark
 ```
 
 ### Visualization
@@ -114,7 +114,7 @@ rng.fill_bytes(&mut buf);
 use nbody_entropy::GpuNbodyEntropy;
 use rand_core::{RngCore, SeedableRng};
 
-// GPU version - same API, ~2000x faster
+// GPU version - same API, ~5000x faster
 let mut rng = GpuNbodyEntropy::new();
 let value = rng.next_u64();
 ```
@@ -134,10 +134,10 @@ nbody-entropy = { version = "0.1", features = ["viz"] }
 
 ## Statistical Testing
 
-Passes dieharder tests at ~2 GB/s throughput:
+Passes dieharder tests at ~5 GB/s throughput:
 
 ```bash
-cargo run --release --features gpu -- gpu-stream | dieharder -a -g 200
+cargo run --release --features gpu --bin nbody-entropy -- gpu-stream | dieharder -a -g 200
 ```
 
 ## Limitations
