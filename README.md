@@ -1,6 +1,6 @@
 # N-Body Entropy
 
-An experimental entropy generator that extracts randomness from GPU-accelerated N-body gravitational simulation with chaotic dynamics.
+A GPU-accelerated entropy generator that extracts randomness from N-body gravitational simulation with chaotic dynamics.
 
 ![N-Body Visualization](image.png)
 
@@ -43,23 +43,25 @@ The slingshot mechanic is key - without it, particles eventually clump into a si
 ### Entropy Generation
 
 1. Seed from OS entropy (`/dev/urandom` on Linux)
-2. Run N-body physics simulation
+2. Run N-body physics simulation on GPU
 3. Mix particle positions/velocities with xorshift operations
 4. Extract random bytes from mixed state
 5. Repeat
 
-This acts as an **entropy amplifier** - true randomness (32 bytes / 256 bits) is expanded into a high-throughput stream (~5 GB/s) through chaotic dynamics.
+This is a **hybrid RNG** combining three sources of unpredictability:
+1. **OS entropy seeding** (`/dev/urandom`) - true hardware/system randomness
+2. **Chaotic dynamics** - N-body simulation amplifies initial randomness
+3. **GPU non-determinism** - parallel floating-point execution order varies unpredictably
+
+Even with the same seed, outputs differ between runs due to hardware-level timing variations.
 
 ## Performance
 
-| Version | Speed       | Notes                                    |
-| ------- | ----------- | ---------------------------------------- |
-| CPU     | ~0.87 MB/s  | Full n-body simulation                   |
-| GPU     | **~5 GB/s** | wgpu compute shaders, batched generation |
+~5 GB/s throughput on modern GPUs.
 
 ```bash
-# GPU benchmark
-cargo run --release --features gpu --bin nbody-entropy -- gpu-benchmark
+# Benchmark
+cargo run --release -- benchmark
 ```
 
 ## Usage
@@ -68,19 +70,16 @@ cargo run --release --features gpu --bin nbody-entropy -- gpu-benchmark
 
 ```bash
 # Run built-in NIST test suite
-cargo run --release --bin nbody-entropy -- test
-
-# GPU test suite (much faster)
-cargo run --release --features gpu --bin nbody-entropy -- gpu-test
+cargo run --release -- test
 
 # Output raw bytes for external tools
-cargo run --release --features gpu --bin nbody-entropy -- gpu-raw 10000000 | ent
+cargo run --release -- raw 10000000 | ent
 
 # Continuous stream for dieharder
-cargo run --release --features gpu --bin nbody-entropy -- gpu-stream | dieharder -a -g 200
+cargo run --release -- stream | dieharder -a -g 200
 
 # Benchmark
-cargo run --release --features gpu --bin nbody-entropy -- gpu-benchmark
+cargo run --release -- benchmark
 ```
 
 ### Visualization
@@ -98,14 +97,14 @@ cargo run --release --features viz --bin nbody-viz
 ### As a Library
 
 ```rust
-use nbody_entropy::NbodyEntropy;
+use nbody_entropy::GpuNbodyEntropy;
 use rand_core::{RngCore, SeedableRng};
 
 // Create from OS entropy (/dev/urandom on Linux)
-let mut rng = NbodyEntropy::new();
+let mut rng = GpuNbodyEntropy::new();
 
-// Or from explicit 32-byte seed (for reproducible sequences)
-let mut rng = NbodyEntropy::from_seed([0u8; 32]);
+// Or from explicit 32-byte seed
+let mut rng = GpuNbodyEntropy::from_seed([0u8; 32]);
 
 // Generate random values (implements RngCore)
 let value: u64 = rng.next_u64();
@@ -115,26 +114,11 @@ let mut buf = [0u8; 32];
 rng.fill_bytes(&mut buf);
 ```
 
-### GPU-Accelerated Version
-
-```rust
-#[cfg(feature = "gpu")]
-use nbody_entropy::GpuNbodyEntropy;
-use rand_core::RngCore;
-
-// GPU version - seeded from OS entropy, ~5000x faster
-let mut rng = GpuNbodyEntropy::new();
-let value = rng.next_u64();
-```
-
 ## Features
 
 ```toml
 [dependencies]
 nbody-entropy = "0.1"
-
-# With GPU acceleration
-nbody-entropy = { version = "0.1", features = ["gpu"] }
 
 # With visualization
 nbody-entropy = { version = "0.1", features = ["viz"] }
@@ -145,29 +129,8 @@ nbody-entropy = { version = "0.1", features = ["viz"] }
 Passes dieharder tests at ~5 GB/s throughput:
 
 ```bash
-cargo run --release --features gpu --bin nbody-entropy -- gpu-stream | dieharder -a -g 200
+cargo run --release -- stream | dieharder -a -g 200
 ```
-
-## Randomness Classification
-
-| Version | Type | Description |
-|---------|------|-------------|
-| **CPU** | Entropy Amplifier | Deterministic expansion of OS entropy seed |
-| **GPU** | Hybrid RNG | True entropy seed + hardware non-determinism |
-
-The **GPU version** combines three sources of unpredictability:
-1. **OS entropy seeding** (`/dev/urandom`) - true hardware/system randomness
-2. **Chaotic dynamics** - N-body simulation amplifies initial randomness
-3. **GPU non-determinism** - parallel floating-point execution order varies unpredictably
-
-This makes the GPU version arguably a **true random number generator** - even with the same seed, outputs differ between runs due to hardware-level timing variations.
-
-## Limitations
-
-This is an **experimental project**:
-
-1. **Not cryptographically proven** - Needs formal analysis
-2. **Requires GPU** - For practical speeds (~5 GB/s vs ~1 MB/s on CPU)
 
 ## How It Differs From Other RNGs
 
@@ -178,6 +141,13 @@ Most chaos-based PRNGs use simple systems (logistic map, Lorenz attractor). This
 - **Slingshot dynamics**: Prevents collapse into attracting fixed points
 - **GPU parallelism**: Each particle computed in parallel
 - **Hardware non-determinism**: GPU execution order adds true unpredictability
+
+## Limitations
+
+This is an **experimental project**:
+
+1. **Not cryptographically proven** - Needs formal analysis
+2. **Requires GPU** - Uses wgpu for compute shaders
 
 ## License
 

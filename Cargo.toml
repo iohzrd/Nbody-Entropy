@@ -2,11 +2,12 @@
 name = "nbody-entropy"
 version = "0.1.0"
 edition = "2024"
-description = "Experimental entropy extraction from N-body particle simulation"
+description = "GPU-accelerated entropy extraction from N-body particle simulation"
 license = "MIT"
+default-run = "nbody-entropy"
 
 [features]
-default = []
+default = ["gpu"]
 gpu = ["wgpu", "bytemuck", "pollster"]
 viz = ["iced"]
 
