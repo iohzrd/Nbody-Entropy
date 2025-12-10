@@ -148,15 +148,28 @@ Passes dieharder tests at ~5 GB/s throughput:
 cargo run --release --features gpu --bin nbody-entropy -- gpu-stream | dieharder -a -g 200
 ```
 
+## Randomness Classification
+
+| Version | Type | Description |
+|---------|------|-------------|
+| **CPU** | Entropy Amplifier | Deterministic expansion of OS entropy seed |
+| **GPU** | Hybrid RNG | True entropy seed + hardware non-determinism |
+
+The **GPU version** combines three sources of unpredictability:
+1. **OS entropy seeding** (`/dev/urandom`) - true hardware/system randomness
+2. **Chaotic dynamics** - N-body simulation amplifies initial randomness
+3. **GPU non-determinism** - parallel floating-point execution order varies unpredictably
+
+This makes the GPU version arguably a **true random number generator** - even with the same seed, outputs differ between runs due to hardware-level timing variations.
+
 ## Limitations
 
 This is an **experimental project**:
 
 1. **Not cryptographically proven** - Needs formal analysis
-2. **Non-deterministic on GPU** - Parallel floating point operations may vary between runs (actually a feature for entropy)
-3. **Requires GPU** - For practical speeds
+2. **Requires GPU** - For practical speeds (~5 GB/s vs ~1 MB/s on CPU)
 
-## How It Differs From Other Chaos PRNGs
+## How It Differs From Other RNGs
 
 Most chaos-based PRNGs use simple systems (logistic map, Lorenz attractor). This uses:
 
@@ -164,6 +177,7 @@ Most chaos-based PRNGs use simple systems (logistic map, Lorenz attractor). This
 - **N-body interactions**: O(n²) gravitational relationships
 - **Slingshot dynamics**: Prevents collapse into attracting fixed points
 - **GPU parallelism**: Each particle computed in parallel
+- **Hardware non-determinism**: GPU execution order adds true unpredictability
 
 ## License
 
