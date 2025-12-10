@@ -2,6 +2,8 @@
 
 An experimental entropy generator that extracts randomness from GPU-accelerated N-body gravitational simulation with chaotic dynamics.
 
+![N-Body Visualization](image.png)
+
 ## Concept
 
 Traditional PRNGs use mathematical operations (xorshift, LCG, etc.) to produce pseudo-random sequences. This project explores a different approach: using a **chaotic physical simulation** as the entropy source.
@@ -15,12 +17,14 @@ The N-body gravitational problem is inherently chaotic - small differences in in
 64 particles exist in a 2D toroidal space with chaotic n-body dynamics:
 
 **Attractor Particles (8)**
+
 - High mass (10.0)
 - Full gravitational interaction with all other attractors
 - Create emergent chaotic behavior through n-body dynamics
 - Slingshot effect on close approach prevents clumping
 
 **Follower Particles (56)**
+
 - Low mass (1.0)
 - Influenced by sampled attractors (not each other)
 - Add high-dimensional state space
@@ -28,6 +32,7 @@ The N-body gravitational problem is inherently chaotic - small differences in in
 ### Physics
 
 Each particle experiences:
+
 - **Gravitational attraction**: Standard inverse-square law between particles
 - **Slingshot effect**: Tangential velocity boost on close approach (radius < 0.08), creating orbital dynamics
 - **Velocity damping**: Slight damping (0.999) for stability
@@ -44,10 +49,10 @@ The slingshot mechanic is key - without it, particles eventually clump into a si
 
 ## Performance
 
-| Version | Speed | Notes |
-|---------|-------|-------|
-| CPU | ~0.87 MB/s | Full n-body simulation |
-| GPU | **~5 GB/s** | wgpu compute shaders, batched generation |
+| Version | Speed       | Notes                                    |
+| ------- | ----------- | ---------------------------------------- |
+| CPU     | ~0.87 MB/s  | Full n-body simulation                   |
+| GPU     | **~5 GB/s** | wgpu compute shaders, batched generation |
 
 ```bash
 # GPU benchmark
