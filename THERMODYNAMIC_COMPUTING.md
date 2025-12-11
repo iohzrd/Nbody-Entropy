@@ -278,6 +278,7 @@ See [HARDWARE.md](HARDWARE.md) for detailed hardware design concepts.
 | `thermodynamic-stream` | Entropy streaming to stdout      |
 | `rng-demo`             | ThermodynamicRng usage           |
 | `hyperparam-tuning`    | Hyperparameter optimization      |
+| `diffusion-demo`       | Diffusion model connection       |
 
 ## Public API
 
@@ -313,13 +314,64 @@ use temper::expr::*;        // Expression DSL
 4. **Expression DSL**: Composable loss functions compiling to GPU shaders
 5. **Adaptive scheduling**: Dimension-aware annealing with automatic reheat
 
+## Diffusion Model Connection
+
+**Key Insight**: Temper's Langevin dynamics IS the reverse diffusion process used in score-based generative models (DDPM, score matching, etc.)
+
+### The Mathematical Equivalence
+
+Diffusion models sample using the score function:
+
+```
+x_{t-1} = x_t + ε·∇log p(x) + √(2ε)·z
+```
+
+Temper's Langevin dynamics:
+
+```
+dx = -γ·∇E(x)·dt + √(2γT)·dW
+```
+
+These are **identical** when:
+
+- E(x) = -log p(x) (energy = negative log probability)
+- Score function s(x) = ∇log p(x) = -∇E(x)
+- Temperature T corresponds to noise level σ²
+
+### Temperature Annealing = Reverse Diffusion
+
+| Diffusion Model        | Temper                    |
+| ---------------------- | ------------------------- |
+| t = T (pure noise)     | T >> 1 (high temperature) |
+| t → 0 (clean samples)  | T → 0 (low temperature)   |
+| Denoising timestep     | Cooling schedule          |
+| Learned score s_θ(x,t) | Analytical -∇E(x)         |
+
+**Demo**: `cargo run --release --features gpu --bin diffusion-demo`
+
+```
+Diffusion Progress:
+t=1000 (T=10.0)  → Pure noise
+t=600  (T=1.2)   → Noisy structure emerging
+t=200  (T=0.14)  → Clear modes visible
+t=0    (T=0.05)  → Final samples from target distribution
+
+8D Denoising: Found 250/256 hypercube modes
+```
+
+### Implications
+
+1. **Unified Theory**: Diffusion models are a special case of thermodynamic computation
+2. **Hardware Path**: Physical thermal noise → Natural diffusion sampling
+3. **No Score Network Needed**: For known energy functions, use analytical gradients
+
 ## Future Directions
 
-1. **Diffusion models**: The denoising process is Langevin dynamics—direct connection
-2. **Larger neural networks**: Scale beyond 37 parameters to practical networks
-3. **Python bindings**: PyO3 wrapper for ML ecosystem integration
-4. **WebGPU demo**: Browser-based interactive visualization
-5. **Hardware prototypes**: Analog or stochastic digital implementations
+1. **Larger neural networks**: Scale beyond 37 parameters to practical networks
+2. **Python bindings**: PyO3 wrapper for ML ecosystem integration
+3. **WebGPU demo**: Browser-based interactive visualization
+4. **Hardware prototypes**: Analog or stochastic digital implementations
+5. **Image diffusion**: Apply to actual image generation tasks
 
 ## Conclusion
 
