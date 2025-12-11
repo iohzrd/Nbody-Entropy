@@ -145,3 +145,8 @@ required-features = ["gpu"]
 name = "gradient-benchmark"
 path = "src/bin/gradient-benchmark.rs"
 required-features = ["gpu"]
+
+[[bin]]
+name = "rng-demo"
+path = "src/bin/rng-demo.rs"
+required-features = ["gpu"]
