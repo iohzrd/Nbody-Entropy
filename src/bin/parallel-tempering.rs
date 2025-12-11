@@ -10,8 +10,8 @@
 //! - Swaps allow good solutions to propagate to cold replicas
 //! - Much better at escaping local minima than single-temperature runs
 
-use temper::thermodynamic::{LossFunction, ThermodynamicSystem, ThermodynamicParticle};
 use std::time::Instant;
+use temper::thermodynamic::{LossFunction, ThermodynamicParticle, ThermodynamicSystem};
 
 /// Parallel tempering system with multiple temperature replicas
 pub struct ParallelTempering {
@@ -47,7 +47,8 @@ impl ParallelTempering {
         }
 
         // Create replicas at each temperature
-        let replicas = temperatures.iter()
+        let replicas = temperatures
+            .iter()
             .map(|&t| ThermodynamicSystem::with_loss_function(particle_count, dim, t, loss_fn))
             .collect();
 
@@ -84,7 +85,11 @@ impl ParallelTempering {
         }
 
         // Alternate between even-odd and odd-even pairings
-        let offset = if (self.step_count / self.swap_interval) % 2 == 0 { 0 } else { 1 };
+        let offset = if (self.step_count / self.swap_interval) % 2 == 0 {
+            0
+        } else {
+            1
+        };
 
         let mut i = offset;
         while i + 1 < n {
@@ -94,11 +99,13 @@ impl ParallelTempering {
             let particles_i = self.replicas[i].read_particles();
             let particles_j = self.replicas[i + 1].read_particles();
 
-            let e_i = particles_i.iter()
+            let e_i = particles_i
+                .iter()
                 .filter(|p| !p.energy.is_nan())
                 .map(|p| p.energy)
                 .fold(f32::MAX, f32::min);
-            let e_j = particles_j.iter()
+            let e_j = particles_j
+                .iter()
                 .filter(|p| !p.energy.is_nan())
                 .map(|p| p.energy)
                 .fold(f32::MAX, f32::min);
@@ -125,7 +132,9 @@ impl ParallelTempering {
 
     /// Get the coldest replica (best for optimization)
     pub fn coldest_replica(&self) -> &ThermodynamicSystem {
-        let min_idx = self.temperatures.iter()
+        let min_idx = self
+            .temperatures
+            .iter()
             .enumerate()
             .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
             .map(|(i, _)| i)
@@ -158,11 +167,14 @@ impl ParallelTempering {
 
     /// Get statistics about the system
     pub fn stats(&self) -> ParallelTemperingStats {
-        let replica_stats: Vec<(f32, f32, f32)> = self.replicas.iter()
+        let replica_stats: Vec<(f32, f32, f32)> = self
+            .replicas
+            .iter()
             .zip(&self.temperatures)
             .map(|(replica, &temp)| {
                 let particles = replica.read_particles();
-                let energies: Vec<f32> = particles.iter()
+                let energies: Vec<f32> = particles
+                    .iter()
                     .filter(|p| !p.energy.is_nan())
                     .map(|p| p.energy)
                     .collect();
@@ -189,7 +201,7 @@ impl ParallelTempering {
 
 #[derive(Debug)]
 pub struct ParallelTemperingStats {
-    pub replica_stats: Vec<(f32, f32, f32)>,  // (temp, min_energy, mean_energy)
+    pub replica_stats: Vec<(f32, f32, f32)>, // (temp, min_energy, mean_energy)
     pub swap_rate: f32,
     pub total_swaps: usize,
     pub accepted_swaps: usize,
@@ -198,7 +210,9 @@ pub struct ParallelTemperingStats {
 // Simple random number for swap decisions
 fn rand_float() -> f32 {
     use std::time::SystemTime;
-    let t = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
+    let t = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap();
     let x = t.subsec_nanos() as u32;
     let x = x ^ (x >> 16);
     let x = x.wrapping_mul(0x7feb352d);
@@ -207,18 +221,30 @@ fn rand_float() -> f32 {
 }
 
 fn main() {
-    println!("{}",
-        "╔══════════════════════════════════════════════════════════════════════════╗");
-    println!("{}",
-        "║           PARALLEL TEMPERING DEMONSTRATION                              ║");
-    println!("{}",
-        "╠══════════════════════════════════════════════════════════════════════════╣");
-    println!("{}",
-        "║  Running multiple temperature replicas with replica exchange            ║");
-    println!("{}",
-        "║  Hot replicas explore, cold replicas exploit, swaps propagate solutions ║");
-    println!("{}",
-        "╚══════════════════════════════════════════════════════════════════════════╝\n");
+    println!(
+        "{}",
+        "╔══════════════════════════════════════════════════════════════════════════╗"
+    );
+    println!(
+        "{}",
+        "║           PARALLEL TEMPERING DEMONSTRATION                              ║"
+    );
+    println!(
+        "{}",
+        "╠══════════════════════════════════════════════════════════════════════════╣"
+    );
+    println!(
+        "{}",
+        "║  Running multiple temperature replicas with replica exchange            ║"
+    );
+    println!(
+        "{}",
+        "║  Hot replicas explore, cold replicas exploit, swaps propagate solutions ║"
+    );
+    println!(
+        "{}",
+        "╚══════════════════════════════════════════════════════════════════════════╝\n"
+    );
 
     // Test on Rastrigin - highly multimodal, hard for single-temperature methods
     test_rastrigin();
@@ -246,8 +272,8 @@ fn test_rastrigin() {
         num_replicas,
         particle_count,
         dim,
-        0.001,  // Cold
-        2.0,    // Hot
+        0.001, // Cold
+        2.0,   // Hot
         LossFunction::Rastrigin,
         50,
     );
@@ -270,8 +296,12 @@ fn test_rastrigin() {
     println!("    Time: {:?}", elapsed);
     println!("    Best loss: {:.6}", best.energy);
     println!("    Best position: {:?}", &best.pos[..dim]);
-    println!("    Swap rate: {:.1}% ({}/{})",
-        stats.swap_rate * 100.0, stats.accepted_swaps, stats.total_swaps);
+    println!(
+        "    Swap rate: {:.1}% ({}/{})",
+        stats.swap_rate * 100.0,
+        stats.accepted_swaps,
+        stats.total_swaps
+    );
 
     println!("\n  Per-replica statistics:");
     println!("    {:>10} {:>12} {:>12}", "Temp", "Min Loss", "Mean Loss");
@@ -282,7 +312,10 @@ fn test_rastrigin() {
     // Compare to single temperature
     println!("\n  Comparison to single-temperature run:");
     let mut single = ThermodynamicSystem::with_loss_function(
-        particle_count * num_replicas, dim, 0.001, LossFunction::Rastrigin
+        particle_count * num_replicas,
+        dim,
+        0.001,
+        LossFunction::Rastrigin,
     );
     for step in 0..steps {
         let progress = step as f32 / steps as f32;
@@ -291,14 +324,22 @@ fn test_rastrigin() {
         single.step();
     }
     let single_particles = single.read_particles();
-    let single_best = single_particles.iter()
+    let single_best = single_particles
+        .iter()
         .filter(|p| !p.energy.is_nan())
         .map(|p| p.energy)
         .fold(f32::MAX, f32::min);
 
     println!("    Parallel tempering best: {:.6}", best.energy);
     println!("    Single annealing best:   {:.6}", single_best);
-    println!("    Winner: {}", if best.energy < single_best { "PARALLEL TEMPERING" } else { "SINGLE" });
+    println!(
+        "    Winner: {}",
+        if best.energy < single_best {
+            "PARALLEL TEMPERING"
+        } else {
+            "SINGLE"
+        }
+    );
 }
 
 fn test_deep_mlp() {

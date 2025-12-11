@@ -9,8 +9,8 @@
 //! - Multimodal (Rastrigin): Particle methods better at avoiding local minima
 //! - Neural Network (XOR): Real-world non-convex optimization
 
-use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 use std::time::Instant;
+use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 
 // ============================================================================
 // Loss Functions (CPU implementations for SGD/Adam)
@@ -27,12 +27,17 @@ fn sphere_gradient(x: &[f32]) -> Vec<f32> {
 fn rastrigin_loss(x: &[f32]) -> f32 {
     let n = x.len() as f32;
     let pi = std::f32::consts::PI;
-    10.0 * n + x.iter().map(|xi| xi * xi - 10.0 * (2.0 * pi * xi).cos()).sum::<f32>()
+    10.0 * n
+        + x.iter()
+            .map(|xi| xi * xi - 10.0 * (2.0 * pi * xi).cos())
+            .sum::<f32>()
 }
 
 fn rastrigin_gradient(x: &[f32]) -> Vec<f32> {
     let pi = std::f32::consts::PI;
-    x.iter().map(|xi| 2.0 * xi + 20.0 * pi * (2.0 * pi * xi).sin()).collect()
+    x.iter()
+        .map(|xi| 2.0 * xi + 20.0 * pi * (2.0 * pi * xi).sin())
+        .collect()
 }
 
 fn rosenbrock_loss(x: &[f32]) -> f32 {
@@ -65,7 +70,12 @@ fn xor_mlp_forward(w: &[f32], x: f32, y: f32) -> f32 {
 }
 
 fn xor_loss(w: &[f32]) -> f32 {
-    let data = [(0.0, 0.0, 0.0), (0.0, 1.0, 1.0), (1.0, 0.0, 1.0), (1.0, 1.0, 0.0)];
+    let data = [
+        (0.0, 0.0, 0.0),
+        (0.0, 1.0, 1.0),
+        (1.0, 0.0, 1.0),
+        (1.0, 1.0, 0.0),
+    ];
     let mut total = 0.0;
     for (x, y, target) in &data {
         let pred = xor_mlp_forward(w, *x, *y);
@@ -156,7 +166,16 @@ struct BenchmarkResult {
     converged: bool,
 }
 
-fn run_sgd<F, G>(name: &str, loss_fn: F, grad_fn: G, dim: usize, init: &[f32], steps: usize, lr: f32, threshold: f32) -> BenchmarkResult
+fn run_sgd<F, G>(
+    name: &str,
+    loss_fn: F,
+    grad_fn: G,
+    dim: usize,
+    init: &[f32],
+    steps: usize,
+    lr: f32,
+    threshold: f32,
+) -> BenchmarkResult
 where
     F: Fn(&[f32]) -> f32,
     G: Fn(&[f32]) -> Vec<f32>,
@@ -188,7 +207,16 @@ where
     }
 }
 
-fn run_adam<F, G>(name: &str, loss_fn: F, grad_fn: G, dim: usize, init: &[f32], steps: usize, lr: f32, threshold: f32) -> BenchmarkResult
+fn run_adam<F, G>(
+    name: &str,
+    loss_fn: F,
+    grad_fn: G,
+    dim: usize,
+    init: &[f32],
+    steps: usize,
+    lr: f32,
+    threshold: f32,
+) -> BenchmarkResult
 where
     F: Fn(&[f32]) -> f32,
     G: Fn(&[f32]) -> Vec<f32>,
@@ -219,7 +247,12 @@ where
     }
 }
 
-fn run_thermodynamic(loss_fn: LossFunction, dim: usize, steps: usize, threshold: f32) -> BenchmarkResult {
+fn run_thermodynamic(
+    loss_fn: LossFunction,
+    dim: usize,
+    steps: usize,
+    threshold: f32,
+) -> BenchmarkResult {
     let particle_count = 500;
     let mut system = ThermodynamicSystem::with_loss_function(particle_count, dim, 1.0, loss_fn);
 
@@ -233,7 +266,8 @@ fn run_thermodynamic(loss_fn: LossFunction, dim: usize, steps: usize, threshold:
     let elapsed = start.elapsed().as_millis();
 
     let particles = system.read_particles();
-    let best_loss = particles.iter()
+    let best_loss = particles
+        .iter()
         .filter(|p| !p.energy.is_nan())
         .map(|p| p.energy)
         .fold(f32::MAX, f32::min);
@@ -250,28 +284,45 @@ fn run_thermodynamic(loss_fn: LossFunction, dim: usize, steps: usize, threshold:
 fn print_results(name: &str, results: &[BenchmarkResult]) {
     println!("\n  {}", name);
     println!("  {:─<70}", "");
-    println!("  {:20} {:>12} {:>12} {:>10} {:>8}", "Optimizer", "Best Loss", "Final Loss", "Time (ms)", "Status");
+    println!(
+        "  {:20} {:>12} {:>12} {:>10} {:>8}",
+        "Optimizer", "Best Loss", "Final Loss", "Time (ms)", "Status"
+    );
     println!("  {:─<70}", "");
     for r in results {
         let status = if r.converged { "✓" } else { "✗" };
-        println!("  {:20} {:>12.6} {:>12.6} {:>10} {:>8}",
-            r.optimizer, r.best_loss, r.final_loss, r.time_ms, status);
+        println!(
+            "  {:20} {:>12.6} {:>12.6} {:>10} {:>8}",
+            r.optimizer, r.best_loss, r.final_loss, r.time_ms, status
+        );
     }
 }
 
 fn main() {
-    println!("{}",
-        "╔══════════════════════════════════════════════════════════════════════════╗");
-    println!("{}",
-        "║           OPTIMIZER COMPARISON BENCHMARK                                 ║");
-    println!("{}",
-        "╠══════════════════════════════════════════════════════════════════════════╣");
-    println!("{}",
-        "║  Comparing Thermodynamic Particles vs SGD vs Adam                        ║");
-    println!("{}",
-        "║  on Sphere (easy), Rosenbrock (hard), Rastrigin (multimodal), XOR (NN)   ║");
-    println!("{}",
-        "╚══════════════════════════════════════════════════════════════════════════╝\n");
+    println!(
+        "{}",
+        "╔══════════════════════════════════════════════════════════════════════════╗"
+    );
+    println!(
+        "{}",
+        "║           OPTIMIZER COMPARISON BENCHMARK                                 ║"
+    );
+    println!(
+        "{}",
+        "╠══════════════════════════════════════════════════════════════════════════╣"
+    );
+    println!(
+        "{}",
+        "║  Comparing Thermodynamic Particles vs SGD vs Adam                        ║"
+    );
+    println!(
+        "{}",
+        "║  on Sphere (easy), Rosenbrock (hard), Rastrigin (multimodal), XOR (NN)   ║"
+    );
+    println!(
+        "{}",
+        "╚══════════════════════════════════════════════════════════════════════════╝\n"
+    );
 
     let steps = 2000;
 
@@ -285,8 +336,26 @@ fn main() {
         let threshold = 0.01;
 
         let results = vec![
-            run_sgd("sphere", sphere_loss, sphere_gradient, dim, &init, steps, 0.1, threshold),
-            run_adam("sphere", sphere_loss, sphere_gradient, dim, &init, steps, 0.1, threshold),
+            run_sgd(
+                "sphere",
+                sphere_loss,
+                sphere_gradient,
+                dim,
+                &init,
+                steps,
+                0.1,
+                threshold,
+            ),
+            run_adam(
+                "sphere",
+                sphere_loss,
+                sphere_gradient,
+                dim,
+                &init,
+                steps,
+                0.1,
+                threshold,
+            ),
             run_thermodynamic(LossFunction::Sphere, dim, steps, threshold),
         ];
         print_results("Sphere 4D (optimum at origin)", &results);
@@ -302,8 +371,26 @@ fn main() {
         let threshold = 10.0;
 
         let results = vec![
-            run_sgd("rosenbrock", rosenbrock_loss, rosenbrock_gradient, dim, &init, steps, 0.0001, threshold),
-            run_adam("rosenbrock", rosenbrock_loss, rosenbrock_gradient, dim, &init, steps, 0.01, threshold),
+            run_sgd(
+                "rosenbrock",
+                rosenbrock_loss,
+                rosenbrock_gradient,
+                dim,
+                &init,
+                steps,
+                0.0001,
+                threshold,
+            ),
+            run_adam(
+                "rosenbrock",
+                rosenbrock_loss,
+                rosenbrock_gradient,
+                dim,
+                &init,
+                steps,
+                0.01,
+                threshold,
+            ),
             run_thermodynamic(LossFunction::Rosenbrock, dim, steps, threshold),
         ];
         print_results("Rosenbrock 4D (optimum at [1,1,1,1])", &results);
@@ -319,8 +406,26 @@ fn main() {
         let threshold = 10.0;
 
         let results = vec![
-            run_sgd("rastrigin", rastrigin_loss, rastrigin_gradient, dim, &init, steps, 0.01, threshold),
-            run_adam("rastrigin", rastrigin_loss, rastrigin_gradient, dim, &init, steps, 0.01, threshold),
+            run_sgd(
+                "rastrigin",
+                rastrigin_loss,
+                rastrigin_gradient,
+                dim,
+                &init,
+                steps,
+                0.01,
+                threshold,
+            ),
+            run_adam(
+                "rastrigin",
+                rastrigin_loss,
+                rastrigin_gradient,
+                dim,
+                &init,
+                steps,
+                0.01,
+                threshold,
+            ),
             run_thermodynamic(LossFunction::Rastrigin, dim, steps * 2, threshold),
         ];
         print_results("Rastrigin 4D (optimum at origin)", &results);
@@ -337,28 +442,62 @@ fn main() {
         let threshold = 0.5;
 
         let results = vec![
-            run_sgd("xor", xor_loss, xor_gradient, dim, &init, steps * 2, 0.5, threshold),
-            run_adam("xor", xor_loss, xor_gradient, dim, &init, steps * 2, 0.1, threshold),
+            run_sgd(
+                "xor",
+                xor_loss,
+                xor_gradient,
+                dim,
+                &init,
+                steps * 2,
+                0.5,
+                threshold,
+            ),
+            run_adam(
+                "xor",
+                xor_loss,
+                xor_gradient,
+                dim,
+                &init,
+                steps * 2,
+                0.1,
+                threshold,
+            ),
             run_thermodynamic(LossFunction::MlpXor, dim, steps * 2, threshold),
         ];
         print_results("XOR MLP (BCE loss, target < 0.5)", &results);
     }
 
     // Summary
-    println!("\n{}",
-        "╔══════════════════════════════════════════════════════════════════════════╗");
-    println!("{}",
-        "║                              KEY INSIGHTS                                ║");
-    println!("{}",
-        "╠══════════════════════════════════════════════════════════════════════════╣");
-    println!("{}",
-        "║  • Sphere: All optimizers work well on simple convex problems            ║");
-    println!("{}",
-        "║  • Rosenbrock: Adam handles narrow valleys better than SGD               ║");
-    println!("{}",
-        "║  • Rastrigin: Thermodynamic excels at escaping local minima              ║");
-    println!("{}",
-        "║  • XOR: Particle methods explore the loss landscape more thoroughly      ║");
-    println!("{}",
-        "╚══════════════════════════════════════════════════════════════════════════╝");
+    println!(
+        "\n{}",
+        "╔══════════════════════════════════════════════════════════════════════════╗"
+    );
+    println!(
+        "{}",
+        "║                              KEY INSIGHTS                                ║"
+    );
+    println!(
+        "{}",
+        "╠══════════════════════════════════════════════════════════════════════════╣"
+    );
+    println!(
+        "{}",
+        "║  • Sphere: All optimizers work well on simple convex problems            ║"
+    );
+    println!(
+        "{}",
+        "║  • Rosenbrock: Adam handles narrow valleys better than SGD               ║"
+    );
+    println!(
+        "{}",
+        "║  • Rastrigin: Thermodynamic excels at escaping local minima              ║"
+    );
+    println!(
+        "{}",
+        "║  • XOR: Particle methods explore the loss landscape more thoroughly      ║"
+    );
+    println!(
+        "{}",
+        "╚══════════════════════════════════════════════════════════════════════════╝"
+    );
 }

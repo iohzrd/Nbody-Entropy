@@ -4,7 +4,7 @@
 //!
 //! Run with: cargo run --release --features gpu --bin rng-demo
 
-use temper::{ThermodynamicRng, RngCore};
+use temper::{RngCore, ThermodynamicRng};
 
 fn main() {
     println!("ThermodynamicRng Demo");
@@ -33,7 +33,9 @@ fn main() {
     print!("  ");
     for (i, byte) in buffer.iter().enumerate() {
         print!("{:02x}", byte);
-        if (i + 1) % 8 == 0 { print!(" "); }
+        if (i + 1) % 8 == 0 {
+            print!(" ");
+        }
     }
     println!();
 

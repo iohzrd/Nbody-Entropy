@@ -5,8 +5,8 @@
 //!
 //! Run with: cargo run --release --features gpu --bin high-dim-benchmark
 
-use temper::{AdaptiveScheduler, LossFunction, ThermodynamicSystem};
 use std::time::Instant;
+use temper::{AdaptiveScheduler, LossFunction, ThermodynamicSystem};
 
 const PARTICLE_COUNT: usize = 500;
 const STEPS: u32 = 5000;
@@ -22,7 +22,10 @@ struct TrialResult {
 fn run_fixed(dim: usize, t_start: f32, t_end: f32) -> TrialResult {
     let start = Instant::now();
     let mut system = ThermodynamicSystem::with_loss_function(
-        PARTICLE_COUNT, dim, t_start, LossFunction::Rastrigin
+        PARTICLE_COUNT,
+        dim,
+        t_start,
+        LossFunction::Rastrigin,
     );
     system.set_repulsion_samples(64);
 
@@ -35,7 +38,13 @@ fn run_fixed(dim: usize, t_start: f32, t_end: f32) -> TrialResult {
         let temp = t_start * (t_end / t_start).powf(progress);
         system.set_temperature(temp);
 
-        let dt = if temp > 0.1 { 0.01 } else if temp > 0.01 { 0.005 } else { 0.002 };
+        let dt = if temp > 0.1 {
+            0.01
+        } else if temp > 0.01 {
+            0.005
+        } else {
+            0.002
+        };
         system.set_dt(dt);
 
         system.step();
@@ -64,7 +73,10 @@ fn run_fixed(dim: usize, t_start: f32, t_end: f32) -> TrialResult {
 fn run_adaptive(dim: usize, t_start: f32, t_end: f32) -> TrialResult {
     let start = Instant::now();
     let mut system = ThermodynamicSystem::with_loss_function(
-        PARTICLE_COUNT, dim, t_start, LossFunction::Rastrigin
+        PARTICLE_COUNT,
+        dim,
+        t_start,
+        LossFunction::Rastrigin,
     );
     system.set_repulsion_samples(64);
 
@@ -77,7 +89,13 @@ fn run_adaptive(dim: usize, t_start: f32, t_end: f32) -> TrialResult {
         let temp = scheduler.update(min_energy);
         system.set_temperature(temp);
 
-        let dt = if temp > 0.1 { 0.01 } else if temp > 0.01 { 0.005 } else { 0.002 };
+        let dt = if temp > 0.1 {
+            0.01
+        } else if temp > 0.01 {
+            0.005
+        } else {
+            0.002
+        };
         system.set_dt(dt);
 
         system.step();
@@ -106,7 +124,10 @@ fn main() {
     println!("High-Dimensional Adaptive vs Fixed Annealing Benchmark");
     println!("=======================================================");
     println!("Function: Rastrigin (global min = 0 at origin)");
-    println!("Particles: {}, Steps: {}, Trials: {}", PARTICLE_COUNT, STEPS, TRIALS);
+    println!(
+        "Particles: {}, Steps: {}, Trials: {}",
+        PARTICLE_COUNT, STEPS, TRIALS
+    );
     println!();
 
     let dimensions = [2, 4, 8, 16, 32];
@@ -148,33 +169,59 @@ fn main() {
         let adaptive_min = adaptive_energies.iter().cloned().fold(f32::MAX, f32::min);
         let adaptive_max = adaptive_energies.iter().cloned().fold(f32::MIN, f32::max);
 
-        let fixed_success = fixed_results.iter().filter(|r| r.steps_to_threshold.is_some()).count();
-        let adaptive_success = adaptive_results.iter().filter(|r| r.steps_to_threshold.is_some()).count();
+        let fixed_success = fixed_results
+            .iter()
+            .filter(|r| r.steps_to_threshold.is_some())
+            .count();
+        let adaptive_success = adaptive_results
+            .iter()
+            .filter(|r| r.steps_to_threshold.is_some())
+            .count();
 
         let adaptive_reheats: u32 = adaptive_results.iter().map(|r| r.reheats).sum();
 
-        let fixed_conv_steps: Vec<u32> = fixed_results.iter()
+        let fixed_conv_steps: Vec<u32> = fixed_results
+            .iter()
             .filter_map(|r| r.steps_to_threshold)
             .collect();
-        let adaptive_conv_steps: Vec<u32> = adaptive_results.iter()
+        let adaptive_conv_steps: Vec<u32> = adaptive_results
+            .iter()
             .filter_map(|r| r.steps_to_threshold)
             .collect();
 
         let fixed_avg_steps = if !fixed_conv_steps.is_empty() {
             fixed_conv_steps.iter().sum::<u32>() as f32 / fixed_conv_steps.len() as f32
-        } else { f32::NAN };
+        } else {
+            f32::NAN
+        };
 
         let adaptive_avg_steps = if !adaptive_conv_steps.is_empty() {
             adaptive_conv_steps.iter().sum::<u32>() as f32 / adaptive_conv_steps.len() as f32
-        } else { f32::NAN };
+        } else {
+            f32::NAN
+        };
 
         println!();
-        println!("  FIXED:    mean={:8.2}  min={:8.2}  max={:8.2}  success={}/{}  avg_steps={:.0}",
-                 fixed_mean, fixed_min, fixed_max, fixed_success, TRIALS, fixed_avg_steps);
-        println!("  ADAPTIVE: mean={:8.2}  min={:8.2}  max={:8.2}  success={}/{}  avg_steps={:.0}  reheats={}",
-                 adaptive_mean, adaptive_min, adaptive_max, adaptive_success, TRIALS, adaptive_avg_steps, adaptive_reheats);
+        println!(
+            "  FIXED:    mean={:8.2}  min={:8.2}  max={:8.2}  success={}/{}  avg_steps={:.0}",
+            fixed_mean, fixed_min, fixed_max, fixed_success, TRIALS, fixed_avg_steps
+        );
+        println!(
+            "  ADAPTIVE: mean={:8.2}  min={:8.2}  max={:8.2}  success={}/{}  avg_steps={:.0}  reheats={}",
+            adaptive_mean,
+            adaptive_min,
+            adaptive_max,
+            adaptive_success,
+            TRIALS,
+            adaptive_avg_steps,
+            adaptive_reheats
+        );
 
-        let winner = if adaptive_mean < fixed_mean { "ADAPTIVE" } else { "FIXED" };
+        let winner = if adaptive_mean < fixed_mean {
+            "ADAPTIVE"
+        } else {
+            "FIXED"
+        };
         let margin = (fixed_mean - adaptive_mean).abs();
         println!("  Winner: {} by {:.2}", winner, margin);
         println!();

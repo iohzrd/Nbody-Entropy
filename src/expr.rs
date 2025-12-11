@@ -126,23 +126,53 @@ pub fn pi() -> Expr {
 }
 
 // Unary functions
-pub fn abs(e: Expr) -> Expr { Expr::Abs(Arc::new(e)) }
-pub fn sin(e: Expr) -> Expr { Expr::Sin(Arc::new(e)) }
-pub fn cos(e: Expr) -> Expr { Expr::Cos(Arc::new(e)) }
-pub fn tan(e: Expr) -> Expr { Expr::Tan(Arc::new(e)) }
-pub fn exp(e: Expr) -> Expr { Expr::Exp(Arc::new(e)) }
-pub fn ln(e: Expr) -> Expr { Expr::Ln(Arc::new(e)) }
-pub fn sqrt(e: Expr) -> Expr { Expr::Sqrt(Arc::new(e)) }
-pub fn tanh(e: Expr) -> Expr { Expr::Tanh(Arc::new(e)) }
-pub fn floor(e: Expr) -> Expr { Expr::Floor(Arc::new(e)) }
-pub fn ceil(e: Expr) -> Expr { Expr::Ceil(Arc::new(e)) }
-pub fn sign(e: Expr) -> Expr { Expr::Sign(Arc::new(e)) }
+pub fn abs(e: Expr) -> Expr {
+    Expr::Abs(Arc::new(e))
+}
+pub fn sin(e: Expr) -> Expr {
+    Expr::Sin(Arc::new(e))
+}
+pub fn cos(e: Expr) -> Expr {
+    Expr::Cos(Arc::new(e))
+}
+pub fn tan(e: Expr) -> Expr {
+    Expr::Tan(Arc::new(e))
+}
+pub fn exp(e: Expr) -> Expr {
+    Expr::Exp(Arc::new(e))
+}
+pub fn ln(e: Expr) -> Expr {
+    Expr::Ln(Arc::new(e))
+}
+pub fn sqrt(e: Expr) -> Expr {
+    Expr::Sqrt(Arc::new(e))
+}
+pub fn tanh(e: Expr) -> Expr {
+    Expr::Tanh(Arc::new(e))
+}
+pub fn floor(e: Expr) -> Expr {
+    Expr::Floor(Arc::new(e))
+}
+pub fn ceil(e: Expr) -> Expr {
+    Expr::Ceil(Arc::new(e))
+}
+pub fn sign(e: Expr) -> Expr {
+    Expr::Sign(Arc::new(e))
+}
 
 // Binary functions
-pub fn min(a: Expr, b: Expr) -> Expr { Expr::Min(Arc::new(a), Arc::new(b)) }
-pub fn max(a: Expr, b: Expr) -> Expr { Expr::Max(Arc::new(a), Arc::new(b)) }
-pub fn pow(base: Expr, exp: Expr) -> Expr { Expr::Pow(Arc::new(base), Arc::new(exp)) }
-pub fn modulo(a: Expr, b: Expr) -> Expr { Expr::Mod(Arc::new(a), Arc::new(b)) }
+pub fn min(a: Expr, b: Expr) -> Expr {
+    Expr::Min(Arc::new(a), Arc::new(b))
+}
+pub fn max(a: Expr, b: Expr) -> Expr {
+    Expr::Max(Arc::new(a), Arc::new(b))
+}
+pub fn pow(base: Expr, exp: Expr) -> Expr {
+    Expr::Pow(Arc::new(base), Arc::new(exp))
+}
+pub fn modulo(a: Expr, b: Expr) -> Expr {
+    Expr::Mod(Arc::new(a), Arc::new(b))
+}
 
 /// Sum over all dimensions: sum_i f(x[i], i)
 pub fn sum_dims<F>(f: F) -> Expr
@@ -301,7 +331,10 @@ impl Expr {
             ([helpers, grad_helpers].concat().join("\n\n"), grad_body)
         } else {
             // Use numerical gradient (fallback)
-            (helpers.join("\n\n"), "numerical_gradient(pos, dim, d_idx)".to_string())
+            (
+                helpers.join("\n\n"),
+                "numerical_gradient(pos, dim, d_idx)".to_string(),
+            )
         };
 
         let numerical_helper = if !analytical {
@@ -345,7 +378,11 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
             // Negation: d(-f)/dx = -df/dx
             Expr::Neg(e) => {
                 let de = e.to_wgsl_gradient(counter, helpers);
-                if de == "0.0" { "0.0".to_string() } else { format!("(-{})", de) }
+                if de == "0.0" {
+                    "0.0".to_string()
+                } else {
+                    format!("(-{})", de)
+                }
             }
 
             // Absolute value: d|f|/dx = sign(f) * df/dx
@@ -356,7 +393,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
                 } else {
                     *counter += 1;
                     let fn_name = format!("abs_grad_{}", counter);
-                    let inner = e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
+                    let inner =
+                        e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
                     helpers.push(format!(
                         "fn {fn_name}(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{ return sign({inner}) * {de}; }}"
                     ));
@@ -372,7 +410,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
                 } else {
                     *counter += 1;
                     let fn_name = format!("sin_grad_{}", counter);
-                    let inner = e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
+                    let inner =
+                        e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
                     helpers.push(format!(
                         "fn {fn_name}(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{ return cos({inner}) * {de}; }}"
                     ));
@@ -388,7 +427,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
                 } else {
                     *counter += 1;
                     let fn_name = format!("cos_grad_{}", counter);
-                    let inner = e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
+                    let inner =
+                        e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
                     helpers.push(format!(
                         "fn {fn_name}(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{ return -sin({inner}) * {de}; }}"
                     ));
@@ -404,7 +444,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
                 } else {
                     *counter += 1;
                     let fn_name = format!("tan_grad_{}", counter);
-                    let inner = e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
+                    let inner =
+                        e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
                     helpers.push(format!(
                         "fn {fn_name}(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{ let c = cos({inner}); return {de} / (c * c); }}"
                     ));
@@ -420,7 +461,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
                 } else {
                     *counter += 1;
                     let fn_name = format!("exp_grad_{}", counter);
-                    let inner = e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
+                    let inner =
+                        e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
                     helpers.push(format!(
                         "fn {fn_name}(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{ return exp({inner}) * {de}; }}"
                     ));
@@ -436,7 +478,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
                 } else {
                     *counter += 1;
                     let fn_name = format!("ln_grad_{}", counter);
-                    let inner = e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
+                    let inner =
+                        e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
                     helpers.push(format!(
                         "fn {fn_name}(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{ return {de} / {inner}; }}"
                     ));
@@ -452,7 +495,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
                 } else {
                     *counter += 1;
                     let fn_name = format!("sqrt_grad_{}", counter);
-                    let inner = e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
+                    let inner =
+                        e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
                     helpers.push(format!(
                         "fn {fn_name}(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{ return {de} / (2.0 * sqrt({inner})); }}"
                     ));
@@ -468,7 +512,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
                 } else {
                     *counter += 1;
                     let fn_name = format!("tanh_grad_{}", counter);
-                    let inner = e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
+                    let inner =
+                        e.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
                     helpers.push(format!(
                         "fn {fn_name}(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{ let t = tanh({inner}); return (1.0 - t * t) * {de}; }}"
                     ));
@@ -487,7 +532,7 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
                     ("0.0", "0.0") => "0.0".to_string(),
                     ("0.0", _) => db,
                     (_, "0.0") => da,
-                    _ => format!("({da} + {db})")
+                    _ => format!("({da} + {db})"),
                 }
             }
 
@@ -499,7 +544,7 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
                     ("0.0", "0.0") => "0.0".to_string(),
                     ("0.0", _) => format!("(-{db})"),
                     (_, "0.0") => da,
-                    _ => format!("({da} - {db})")
+                    _ => format!("({da} - {db})"),
                 }
             }
 
@@ -557,7 +602,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
             Expr::Pow(base, exp) => {
                 let dbase = base.to_wgsl_gradient(counter, helpers);
                 let dexp = exp.to_wgsl_gradient(counter, helpers);
-                let fbase = base.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
+                let fbase =
+                    base.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
                 let fexp = exp.to_wgsl_with_helpers("pos[d_idx]", "d_idx", &mut 0, &mut Vec::new());
 
                 match (dbase.as_str(), dexp.as_str()) {
@@ -628,9 +674,7 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
             }
 
             // Mod: d(a % b)/dx = da/dx (assuming b is constant)
-            Expr::Mod(a, _b) => {
-                a.to_wgsl_gradient(counter, helpers)
-            }
+            Expr::Mod(a, _b) => a.to_wgsl_gradient(counter, helpers),
 
             // SumDims: d/dx[j] sum_i f(x[i], i) = df(x[j], j)/dx[j]
             // Only the term where i == d_idx contributes
@@ -662,7 +706,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
                 // Get body expression
                 let body_expr = f(Expr::Var, Expr::DimIndex);
                 let mut body_counter = 700 + *counter * 10;
-                let body_code = body_expr.to_wgsl_with_helpers("x", "i", &mut body_counter, helpers);
+                let body_code =
+                    body_expr.to_wgsl_with_helpers("x", "i", &mut body_counter, helpers);
                 let body_grad = body_expr.to_wgsl_gradient(&mut body_counter, helpers);
 
                 // First, create a helper to compute the full product
@@ -702,7 +747,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
                 // Get body expression for loss computation
                 let body_expr = f(Expr::Var, Expr::Var);
                 let mut body_counter = 800 + *counter * 10;
-                let body_code = body_expr.to_wgsl_with_helpers("x", "i", &mut body_counter, helpers);
+                let body_code =
+                    body_expr.to_wgsl_with_helpers("x", "i", &mut body_counter, helpers);
 
                 // Create the loss function helper
                 helpers.push(format!(
@@ -736,7 +782,13 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
     }
 
     /// Generate WGSL code with helper functions for reductions
-    fn to_wgsl_with_helpers(&self, var_name: &str, idx_name: &str, counter: &mut u32, helpers: &mut Vec<String>) -> String {
+    fn to_wgsl_with_helpers(
+        &self,
+        var_name: &str,
+        idx_name: &str,
+        counter: &mut u32,
+        helpers: &mut Vec<String>,
+    ) -> String {
         match self {
             Expr::Var => var_name.to_string(),
             Expr::DimIndex => format!("f32({idx_name})"),
@@ -750,43 +802,95 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
             }
             Expr::Pi => "3.14159265359".to_string(),
 
-            Expr::Neg(e) => format!("(-{})", e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Abs(e) => format!("abs({})", e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Sin(e) => format!("sin({})", e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Cos(e) => format!("cos({})", e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Tan(e) => format!("tan({})", e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Exp(e) => format!("exp({})", e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Ln(e) => format!("log({})", e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Sqrt(e) => format!("sqrt({})", e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Tanh(e) => format!("tanh({})", e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Floor(e) => format!("floor({})", e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Ceil(e) => format!("ceil({})", e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Sign(e) => format!("sign({})", e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
+            Expr::Neg(e) => format!(
+                "(-{})",
+                e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Abs(e) => format!(
+                "abs({})",
+                e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Sin(e) => format!(
+                "sin({})",
+                e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Cos(e) => format!(
+                "cos({})",
+                e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Tan(e) => format!(
+                "tan({})",
+                e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Exp(e) => format!(
+                "exp({})",
+                e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Ln(e) => format!(
+                "log({})",
+                e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Sqrt(e) => format!(
+                "sqrt({})",
+                e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Tanh(e) => format!(
+                "tanh({})",
+                e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Floor(e) => format!(
+                "floor({})",
+                e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Ceil(e) => format!(
+                "ceil({})",
+                e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Sign(e) => format!(
+                "sign({})",
+                e.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
 
-            Expr::Add(a, b) => format!("({} + {})",
+            Expr::Add(a, b) => format!(
+                "({} + {})",
                 a.to_wgsl_with_helpers(var_name, idx_name, counter, helpers),
-                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Sub(a, b) => format!("({} - {})",
+                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Sub(a, b) => format!(
+                "({} - {})",
                 a.to_wgsl_with_helpers(var_name, idx_name, counter, helpers),
-                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Mul(a, b) => format!("({} * {})",
+                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Mul(a, b) => format!(
+                "({} * {})",
                 a.to_wgsl_with_helpers(var_name, idx_name, counter, helpers),
-                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Div(a, b) => format!("({} / {})",
+                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Div(a, b) => format!(
+                "({} / {})",
                 a.to_wgsl_with_helpers(var_name, idx_name, counter, helpers),
-                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Pow(a, b) => format!("pow({}, {})",
+                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Pow(a, b) => format!(
+                "pow({}, {})",
                 a.to_wgsl_with_helpers(var_name, idx_name, counter, helpers),
-                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Min(a, b) => format!("min({}, {})",
+                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Min(a, b) => format!(
+                "min({}, {})",
                 a.to_wgsl_with_helpers(var_name, idx_name, counter, helpers),
-                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Max(a, b) => format!("max({}, {})",
+                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Max(a, b) => format!(
+                "max({}, {})",
                 a.to_wgsl_with_helpers(var_name, idx_name, counter, helpers),
-                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
-            Expr::Mod(a, b) => format!("({} % {})",
+                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
+            Expr::Mod(a, b) => format!(
+                "({} % {})",
                 a.to_wgsl_with_helpers(var_name, idx_name, counter, helpers),
-                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)),
+                b.to_wgsl_with_helpers(var_name, idx_name, counter, helpers)
+            ),
 
             Expr::SumDims(f) => {
                 *counter += 1;
@@ -796,7 +900,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
 
                 let body_expr = f(Expr::Var, Expr::DimIndex);
                 let mut inner_counter = 100 + *counter * 10;
-                let body_code = body_expr.to_wgsl_with_helpers(x_var, loop_var, &mut inner_counter, helpers);
+                let body_code =
+                    body_expr.to_wgsl_with_helpers(x_var, loop_var, &mut inner_counter, helpers);
 
                 let helper = format!(
                     r#"fn {fn_name}(pos: array<f32, 64>, dim: u32) -> f32 {{
@@ -820,7 +925,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
 
                 let body_expr = f(Expr::Var, Expr::DimIndex);
                 let mut inner_counter = 100 + *counter * 10;
-                let body_code = body_expr.to_wgsl_with_helpers(x_var, loop_var, &mut inner_counter, helpers);
+                let body_code =
+                    body_expr.to_wgsl_with_helpers(x_var, loop_var, &mut inner_counter, helpers);
 
                 let helper = format!(
                     r#"fn {fn_name}(pos: array<f32, 64>, dim: u32) -> f32 {{
@@ -845,7 +951,8 @@ fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {{
 
                 let body_expr = f(Expr::Var, Expr::Var);
                 let mut inner_counter = 100 + *counter * 10;
-                let body_code = body_expr.to_wgsl_with_helpers(x_var, loop_var, &mut inner_counter, helpers);
+                let body_code =
+                    body_expr.to_wgsl_with_helpers(x_var, loop_var, &mut inner_counter, helpers);
 
                 let helper = format!(
                     r#"fn {fn_name}(pos: array<f32, 64>, dim: u32) -> f32 {{
@@ -876,9 +983,7 @@ pub fn sphere() -> Expr {
 
 /// Rastrigin function: 10n + sum(x^2 - 10*cos(2πx)), minimum at origin
 pub fn rastrigin() -> Expr {
-    10.0 * dim_count() + sum_dims(|x, _| {
-        x.clone().powi(2) - 10.0 * cos(2.0 * pi() * x)
-    })
+    10.0 * dim_count() + sum_dims(|x, _| x.clone().powi(2) - 10.0 * cos(2.0 * pi() * x))
 }
 
 /// Rosenbrock function: sum(100*(x_{i+1} - x_i^2)^2 + (1-x_i)^2), minimum at (1,1,...,1)
@@ -899,16 +1004,13 @@ pub fn ackley() -> Expr {
     let sum_sq = sum_dims(|x, _| x.powi(2));
     let sum_cos = sum_dims(move |x, _| cos(const_(c) * x));
 
-    const_(-a) * exp(const_(-b) * sqrt(sum_sq / dim_count()))
-        - exp(sum_cos / dim_count())
+    const_(-a) * exp(const_(-b) * sqrt(sum_sq / dim_count())) - exp(sum_cos / dim_count())
         + const_(a + std::f32::consts::E)
 }
 
 /// Griewank function: 1 + sum(x^2/4000) - prod(cos(x/sqrt(i+1))), minimum at origin
 pub fn griewank() -> Expr {
-    const_(1.0)
-        + sum_dims(|x, _| x.powi(2) / 4000.0)
-        - prod_dims(|x, i| cos(x / sqrt(i + 1.0)))
+    const_(1.0) + sum_dims(|x, _| x.powi(2) / 4000.0) - prod_dims(|x, i| cos(x / sqrt(i + 1.0)))
 }
 
 /// Levy function: minimum at (1,1,...,1)
@@ -940,9 +1042,7 @@ pub fn michalewicz_m(m: i32) -> Expr {
 /// Styblinski-Tang function: 0.5 * sum(x_i^4 - 16*x_i^2 + 5*x_i)
 /// Global minimum at x_i ≈ -2.903534 with value ≈ -39.16617*n
 pub fn styblinski_tang() -> Expr {
-    0.5 * sum_dims(|x, _| {
-        x.clone().powi(4) - 16.0 * x.clone().powi(2) + 5.0 * x
-    })
+    0.5 * sum_dims(|x, _| x.clone().powi(4) - 16.0 * x.clone().powi(2) + 5.0 * x)
 }
 
 /// Dixon-Price function: (x_1 - 1)^2 + sum_{i=2}^n (i * (2*x_i^2 - x_{i-1})^2)
@@ -959,7 +1059,8 @@ pub fn dixon_price() -> Expr {
         // Add (i+1) scaling factor and first term (x_0 - 1)^2
         // When i=0, this gives (x_0 - 1)^2
         // For other terms, the scaling is handled in sum_pairs
-        (i.clone() * const_(0.0)) + (const_(1.0) - x).powi(2) * (const_(1.0) - i.clone() / (i + 1.0))
+        (i.clone() * const_(0.0))
+            + (const_(1.0) - x).powi(2) * (const_(1.0) - i.clone() / (i + 1.0))
     })
 }
 
@@ -1005,7 +1106,8 @@ pub fn matyas() -> Expr {
 pub fn three_hump_camel() -> Expr {
     sum_dims(|x, i| {
         // First dimension gets the complex terms
-        2.0 * x.clone().powi(2) - 1.05 * x.clone().powi(4) + x.clone().powi(6) / 6.0
+        2.0 * x.clone().powi(2) - 1.05 * x.clone().powi(4)
+            + x.clone().powi(6) / 6.0
             + const_(0.0) * i
     }) + sum_pairs(|x, y| x * y)
 }

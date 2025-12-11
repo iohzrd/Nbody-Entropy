@@ -14,17 +14,17 @@
 
 use iced::keyboard;
 use iced::mouse;
-use iced::widget::{canvas, container, Column, Text};
-use iced::{event, Color, Element, Event, Length, Point, Rectangle, Renderer, Subscription, Theme};
+use iced::widget::{Column, Text, canvas, container};
+use iced::{Color, Element, Event, Length, Point, Rectangle, Renderer, Subscription, Theme, event};
 use temper::thermodynamic::{ThermodynamicMode, ThermodynamicParticle, ThermodynamicSystem};
 
 const PARTICLE_COUNT: usize = 500;
 const DIM: usize = 2;
 
 // Annealing schedule
-const PHASE1_STEPS: u32 = 500;   // Entropy phase
-const PHASE2_STEPS: u32 = 1000;  // Sampling phase
-const PHASE3_STEPS: u32 = 500;   // Optimization phase
+const PHASE1_STEPS: u32 = 500; // Entropy phase
+const PHASE2_STEPS: u32 = 1000; // Sampling phase
+const PHASE3_STEPS: u32 = 500; // Optimization phase
 const TOTAL_STEPS: u32 = PHASE1_STEPS + PHASE2_STEPS + PHASE3_STEPS;
 
 // Temperature bounds
@@ -173,11 +173,17 @@ impl App {
         let mut count2 = 0;
 
         for p in &self.particles {
-            if p.pos[0].is_nan() { continue; }
+            if p.pos[0].is_nan() {
+                continue;
+            }
             let d1 = ((p.pos[0] - opt1.0).powi(2) + (p.pos[1] - opt1.1).powi(2)).sqrt();
             let d2 = ((p.pos[0] - opt2.0).powi(2) + (p.pos[1] - opt2.1).powi(2)).sqrt();
-            if d1 < tolerance { count1 += 1; }
-            if d2 < tolerance { count2 += 1; }
+            if d1 < tolerance {
+                count1 += 1;
+            }
+            if d2 < tolerance {
+                count2 += 1;
+            }
         }
 
         (count1, count2)
@@ -221,7 +227,9 @@ fn update(app: &mut App, message: Message) {
 
             // Record statistics (every 10 steps to avoid too much data)
             if app.step_count % 10 == 0 {
-                let energies: Vec<f32> = app.particles.iter()
+                let energies: Vec<f32> = app
+                    .particles
+                    .iter()
                     .filter(|p| !p.energy.is_nan())
                     .map(|p| p.energy)
                     .collect();
@@ -248,17 +256,15 @@ fn update(app: &mut App, message: Message) {
         Message::Reset => {
             app.reset();
         }
-        Message::Event(Event::Keyboard(keyboard::Event::KeyPressed { key, .. })) => {
-            match key {
-                keyboard::Key::Named(keyboard::key::Named::Space) => {
-                    app.paused = !app.paused;
-                }
-                keyboard::Key::Character(c) if c.as_str() == "r" => {
-                    app.reset();
-                }
-                _ => {}
+        Message::Event(Event::Keyboard(keyboard::Event::KeyPressed { key, .. })) => match key {
+            keyboard::Key::Named(keyboard::key::Named::Space) => {
+                app.paused = !app.paused;
             }
-        }
+            keyboard::Key::Character(c) if c.as_str() == "r" => {
+                app.reset();
+            }
+            _ => {}
+        },
         Message::Event(_) => {}
     }
 }
@@ -286,9 +292,7 @@ fn view(app: &App) -> Element<'_, Message> {
 
     let stats_text = format!(
         "Near Opt1: {} | Near Opt2: {} | Entropy bits: {}",
-        app.particles_at_opt1,
-        app.particles_at_opt2,
-        app.entropy_bits_collected
+        app.particles_at_opt1, app.particles_at_opt2, app.entropy_bits_collected
     );
 
     let controls_text = "Space=Pause  R=Reset";
@@ -298,17 +302,13 @@ fn view(app: &App) -> Element<'_, Message> {
         .push(Text::new(stats_text).size(14))
         .push(Text::new(controls_text).size(12))
         .push(
-            container(
-                canvas(app)
-                    .width(Length::Fill)
-                    .height(Length::Fill),
-            )
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .style(|_| container::Style {
-                background: Some(iced::Background::Color(Color::from_rgb(0.05, 0.05, 0.1))),
-                ..Default::default()
-            })
+            container(canvas(app).width(Length::Fill).height(Length::Fill))
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .style(|_| container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgb(0.05, 0.05, 0.1))),
+                    ..Default::default()
+                }),
         )
         .into()
 }
@@ -342,10 +342,20 @@ impl canvas::Program<Message> for App {
                 let y = ((i as f32 - DOMAIN_MIN) / DOMAIN_SIZE) * size.height;
 
                 let vline = canvas::Path::line(Point::new(x, 0.0), Point::new(x, size.height));
-                frame.stroke(&vline, canvas::Stroke::default().with_color(grid_color).with_width(0.5));
+                frame.stroke(
+                    &vline,
+                    canvas::Stroke::default()
+                        .with_color(grid_color)
+                        .with_width(0.5),
+                );
 
                 let hline = canvas::Path::line(Point::new(0.0, y), Point::new(size.width, y));
-                frame.stroke(&hline, canvas::Stroke::default().with_color(grid_color).with_width(0.5));
+                frame.stroke(
+                    &hline,
+                    canvas::Stroke::default()
+                        .with_color(grid_color)
+                        .with_width(0.5),
+                );
             }
 
             // Draw optima markers
@@ -404,7 +414,9 @@ impl canvas::Program<Message> for App {
             // Entropy section
             let entropy_fill = if self.step_count < PHASE1_STEPS {
                 self.step_count as f32 / PHASE1_STEPS as f32
-            } else { 1.0 };
+            } else {
+                1.0
+            };
             let entropy_bar = canvas::Path::rectangle(
                 Point::new(10.0, bar_y),
                 iced::Size::new(phase_width * entropy_fill, bar_height),
@@ -416,7 +428,9 @@ impl canvas::Program<Message> for App {
                 0.0
             } else if self.step_count < PHASE1_STEPS + PHASE2_STEPS {
                 (self.step_count - PHASE1_STEPS) as f32 / PHASE2_STEPS as f32
-            } else { 1.0 };
+            } else {
+                1.0
+            };
             let sample_bar = canvas::Path::rectangle(
                 Point::new(10.0 + phase_width, bar_y),
                 iced::Size::new(phase_width * sample_fill, bar_height),
@@ -428,7 +442,9 @@ impl canvas::Program<Message> for App {
                 0.0
             } else if self.step_count < TOTAL_STEPS {
                 (self.step_count - PHASE1_STEPS - PHASE2_STEPS) as f32 / PHASE3_STEPS as f32
-            } else { 1.0 };
+            } else {
+                1.0
+            };
             let opt_bar = canvas::Path::rectangle(
                 Point::new(10.0 + phase_width * 2.0, bar_y),
                 iced::Size::new(phase_width * opt_fill, bar_height),
@@ -438,11 +454,14 @@ impl canvas::Program<Message> for App {
             // Phase dividers
             for i in 1..3 {
                 let x = 10.0 + phase_width * i as f32;
-                let divider = canvas::Path::line(
-                    Point::new(x, bar_y),
-                    Point::new(x, bar_y + bar_height),
+                let divider =
+                    canvas::Path::line(Point::new(x, bar_y), Point::new(x, bar_y + bar_height));
+                frame.stroke(
+                    &divider,
+                    canvas::Stroke::default()
+                        .with_color(Color::WHITE)
+                        .with_width(2.0),
                 );
-                frame.stroke(&divider, canvas::Stroke::default().with_color(Color::WHITE).with_width(2.0));
             }
 
             // Draw energy history graph (top-right)
@@ -460,18 +479,29 @@ impl canvas::Program<Message> for App {
                 frame.fill(&graph_bg, Color::from_rgba(0.0, 0.0, 0.0, 0.7));
 
                 // Plot mean energy
-                let max_e = self.mean_energy_history.iter().cloned().fold(0.1_f32, f32::max);
+                let max_e = self
+                    .mean_energy_history
+                    .iter()
+                    .cloned()
+                    .fold(0.1_f32, f32::max);
                 let len = self.mean_energy_history.len();
 
                 for i in 1..len {
                     let x1 = graph_x + ((i - 1) as f32 / len as f32) * graph_width;
                     let x2 = graph_x + (i as f32 / len as f32) * graph_width;
-                    let y1 = graph_y + graph_height - (self.mean_energy_history[i-1] / max_e).min(1.0) * graph_height;
-                    let y2 = graph_y + graph_height - (self.mean_energy_history[i] / max_e).min(1.0) * graph_height;
+                    let y1 = graph_y + graph_height
+                        - (self.mean_energy_history[i - 1] / max_e).min(1.0) * graph_height;
+                    let y2 = graph_y + graph_height
+                        - (self.mean_energy_history[i] / max_e).min(1.0) * graph_height;
 
                     if !y1.is_nan() && !y2.is_nan() {
                         let line = canvas::Path::line(Point::new(x1, y1), Point::new(x2, y2));
-                        frame.stroke(&line, canvas::Stroke::default().with_color(Color::from_rgb(1.0, 1.0, 0.0)).with_width(1.5));
+                        frame.stroke(
+                            &line,
+                            canvas::Stroke::default()
+                                .with_color(Color::from_rgb(1.0, 1.0, 0.0))
+                                .with_width(1.5),
+                        );
                     }
                 }
 
@@ -479,12 +509,19 @@ impl canvas::Program<Message> for App {
                 for i in 1..len {
                     let x1 = graph_x + ((i - 1) as f32 / len as f32) * graph_width;
                     let x2 = graph_x + (i as f32 / len as f32) * graph_width;
-                    let y1 = graph_y + graph_height - (self.min_energy_history[i-1] / max_e).min(1.0) * graph_height;
-                    let y2 = graph_y + graph_height - (self.min_energy_history[i] / max_e).min(1.0) * graph_height;
+                    let y1 = graph_y + graph_height
+                        - (self.min_energy_history[i - 1] / max_e).min(1.0) * graph_height;
+                    let y2 = graph_y + graph_height
+                        - (self.min_energy_history[i] / max_e).min(1.0) * graph_height;
 
                     if !y1.is_nan() && !y2.is_nan() {
                         let line = canvas::Path::line(Point::new(x1, y1), Point::new(x2, y2));
-                        frame.stroke(&line, canvas::Stroke::default().with_color(Color::from_rgb(0.0, 1.0, 1.0)).with_width(1.5));
+                        frame.stroke(
+                            &line,
+                            canvas::Stroke::default()
+                                .with_color(Color::from_rgb(0.0, 1.0, 1.0))
+                                .with_width(1.5),
+                        );
                     }
                 }
             }
@@ -512,15 +549,24 @@ impl canvas::Program<Message> for App {
                     let x1 = graph_x + ((i - 1) as f32 / len as f32) * graph_width;
                     let x2 = graph_x + (i as f32 / len as f32) * graph_width;
 
-                    let t1 = self.temperature_history[i-1].max(T_END);
+                    let t1 = self.temperature_history[i - 1].max(T_END);
                     let t2 = self.temperature_history[i].max(T_END);
 
-                    let y1 = graph_y + graph_height - ((t1.ln() - log_min) / (log_max - log_min)).clamp(0.0, 1.0) * graph_height;
-                    let y2 = graph_y + graph_height - ((t2.ln() - log_min) / (log_max - log_min)).clamp(0.0, 1.0) * graph_height;
+                    let y1 = graph_y + graph_height
+                        - ((t1.ln() - log_min) / (log_max - log_min)).clamp(0.0, 1.0)
+                            * graph_height;
+                    let y2 = graph_y + graph_height
+                        - ((t2.ln() - log_min) / (log_max - log_min)).clamp(0.0, 1.0)
+                            * graph_height;
 
                     if !y1.is_nan() && !y2.is_nan() {
                         let line = canvas::Path::line(Point::new(x1, y1), Point::new(x2, y2));
-                        frame.stroke(&line, canvas::Stroke::default().with_color(Color::from_rgb(1.0, 0.5, 0.0)).with_width(2.0));
+                        frame.stroke(
+                            &line,
+                            canvas::Stroke::default()
+                                .with_color(Color::from_rgb(1.0, 0.5, 0.0))
+                                .with_width(2.0),
+                        );
                     }
                 }
             }

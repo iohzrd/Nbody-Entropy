@@ -8,8 +8,8 @@
 
 use iced::keyboard;
 use iced::mouse;
-use iced::widget::{canvas, container, Column, Text};
-use iced::{event, Color, Element, Event, Length, Point, Rectangle, Renderer, Subscription, Theme};
+use iced::widget::{Column, Text, canvas, container};
+use iced::{Color, Element, Event, Length, Point, Rectangle, Renderer, Subscription, Theme, event};
 use temper::thermodynamic::{LossFunction, ThermodynamicParticle, ThermodynamicSystem};
 
 const PARTICLE_COUNT: usize = 500;
@@ -62,7 +62,10 @@ struct App {
 impl App {
     fn new() -> Self {
         let mut system = ThermodynamicSystem::with_loss_function(
-            PARTICLE_COUNT, DIM, T_START, LossFunction::Ackley
+            PARTICLE_COUNT,
+            DIM,
+            T_START,
+            LossFunction::Ackley,
         );
         system.set_repulsion_samples(32);
         let particles = system.read_particles();
@@ -85,7 +88,10 @@ impl App {
 
     fn reset(&mut self) {
         self.system = ThermodynamicSystem::with_loss_function(
-            PARTICLE_COUNT, DIM, T_START, LossFunction::Ackley
+            PARTICLE_COUNT,
+            DIM,
+            T_START,
+            LossFunction::Ackley,
         );
         self.system.set_repulsion_samples(32);
         self.particles = self.system.read_particles();
@@ -129,15 +135,23 @@ fn update(app: &mut App, message: Message) {
                 app.temperature = app.compute_temperature();
                 app.system.set_temperature(app.temperature);
 
-                let repulsion = if app.temperature > 1.0 { 32 }
-                               else if app.temperature > 0.1 { 16 }
-                               else { 0 };
+                let repulsion = if app.temperature > 1.0 {
+                    32
+                } else if app.temperature > 0.1 {
+                    16
+                } else {
+                    0
+                };
                 app.system.set_repulsion_samples(repulsion);
 
                 // Ackley is smoother than Rastrigin, can use slightly larger dt
-                let dt = if app.temperature > 0.1 { 0.01 }
-                        else if app.temperature > 0.01 { 0.008 }
-                        else { 0.005 };
+                let dt = if app.temperature > 0.1 {
+                    0.01
+                } else if app.temperature > 0.01 {
+                    0.008
+                } else {
+                    0.005
+                };
                 app.system.set_dt(dt);
 
                 app.system.step();
@@ -158,7 +172,11 @@ fn update(app: &mut App, message: Message) {
                     }
                 }
             }
-            app.mean_energy = if count > 0 { sum_energy / count as f32 } else { 0.0 };
+            app.mean_energy = if count > 0 {
+                sum_energy / count as f32
+            } else {
+                0.0
+            };
 
             if app.step_count % 10 == 0 {
                 app.energy_history.push(app.min_energy);
@@ -170,27 +188,29 @@ fn update(app: &mut App, message: Message) {
         Message::Reset => app.reset(),
         Message::SpeedUp => app.speed = (app.speed * 2).min(50),
         Message::SpeedDown => app.speed = (app.speed / 2).max(1),
-        Message::Event(Event::Keyboard(keyboard::Event::KeyPressed { key, .. })) => {
-            match key {
-                keyboard::Key::Named(keyboard::key::Named::Space) => app.paused = !app.paused,
-                keyboard::Key::Character(c) => match c.as_str() {
-                    "r" => app.reset(),
-                    "+" | "=" => app.speed = (app.speed * 2).min(50),
-                    "-" => app.speed = (app.speed / 2).max(1),
-                    _ => {}
-                }
+        Message::Event(Event::Keyboard(keyboard::Event::KeyPressed { key, .. })) => match key {
+            keyboard::Key::Named(keyboard::key::Named::Space) => app.paused = !app.paused,
+            keyboard::Key::Character(c) => match c.as_str() {
+                "r" => app.reset(),
+                "+" | "=" => app.speed = (app.speed * 2).min(50),
+                "-" => app.speed = (app.speed / 2).max(1),
                 _ => {}
-            }
-        }
+            },
+            _ => {}
+        },
         Message::Event(_) => {}
     }
 }
 
 fn view(app: &App) -> Element<'_, Message> {
     let progress = (app.step_count as f32 / TOTAL_STEPS as f32 * 100.0).min(100.0);
-    let status = if app.paused { "PAUSED" }
-                 else if app.step_count >= TOTAL_STEPS { "DONE" }
-                 else { "RUNNING" };
+    let status = if app.paused {
+        "PAUSED"
+    } else if app.step_count >= TOTAL_STEPS {
+        "DONE"
+    } else {
+        "RUNNING"
+    };
 
     let info = format!(
         "Step: {}/{} ({:.0}%) | T: {:.4} | Status: {} | Speed: {}x",
@@ -209,13 +229,9 @@ fn view(app: &App) -> Element<'_, Message> {
         .push(Text::new(stats).size(14))
         .push(Text::new(controls).size(12))
         .push(
-            container(
-                canvas(app)
-                    .width(Length::Fill)
-                    .height(Length::Fill),
-            )
-            .width(Length::Fill)
-            .height(Length::Fill)
+            container(canvas(app).width(Length::Fill).height(Length::Fill))
+                .width(Length::Fill)
+                .height(Length::Fill),
         )
         .into()
 }
@@ -330,7 +346,8 @@ impl canvas::Program<Message> for App {
                 Point::new(bar_x, bar_y + bar_height - fill_height),
                 iced::Size::new(bar_width, fill_height),
             );
-            let temp_color = Color::from_rgb(log_t.clamp(0.0, 1.0), 0.2, 1.0 - log_t.clamp(0.0, 1.0));
+            let temp_color =
+                Color::from_rgb(log_t.clamp(0.0, 1.0), 0.2, 1.0 - log_t.clamp(0.0, 1.0));
             frame.fill(&temp_fill, temp_color);
 
             // Energy history
@@ -354,15 +371,24 @@ impl canvas::Program<Message> for App {
                     let x1 = graph_x + ((i - 1) as f32 / len as f32) * graph_width;
                     let x2 = graph_x + (i as f32 / len as f32) * graph_width;
 
-                    let e1 = self.energy_history[i-1].max(min_e);
+                    let e1 = self.energy_history[i - 1].max(min_e);
                     let e2 = self.energy_history[i].max(min_e);
 
-                    let y1 = graph_y + graph_height - ((e1.ln() - min_e.ln()) / (max_e.ln() - min_e.ln())).clamp(0.0, 1.0) * graph_height;
-                    let y2 = graph_y + graph_height - ((e2.ln() - min_e.ln()) / (max_e.ln() - min_e.ln())).clamp(0.0, 1.0) * graph_height;
+                    let y1 = graph_y + graph_height
+                        - ((e1.ln() - min_e.ln()) / (max_e.ln() - min_e.ln())).clamp(0.0, 1.0)
+                            * graph_height;
+                    let y2 = graph_y + graph_height
+                        - ((e2.ln() - min_e.ln()) / (max_e.ln() - min_e.ln())).clamp(0.0, 1.0)
+                            * graph_height;
 
                     if !y1.is_nan() && !y2.is_nan() {
                         let line = canvas::Path::line(Point::new(x1, y1), Point::new(x2, y2));
-                        frame.stroke(&line, canvas::Stroke::default().with_color(Color::from_rgb(0.0, 1.0, 1.0)).with_width(2.0));
+                        frame.stroke(
+                            &line,
+                            canvas::Stroke::default()
+                                .with_color(Color::from_rgb(0.0, 1.0, 1.0))
+                                .with_width(2.0),
+                        );
                     }
                 }
             }

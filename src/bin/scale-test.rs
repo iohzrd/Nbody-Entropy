@@ -7,8 +7,8 @@
 //!
 //! Run with: cargo run --release --features gpu --bin scale-test
 
-use temper::{ThermodynamicSystem, LossFunction};
 use std::time::Instant;
+use temper::{LossFunction, ThermodynamicSystem};
 
 fn main() {
     println!("╔══════════════════════════════════════════════════════════════════════════╗");
@@ -22,13 +22,17 @@ fn main() {
     println!("TEST 1: PARTICLE COUNT SCALING (dim=4, K=64 repulsion samples)");
     println!("═══════════════════════════════════════════════════════════════════════════\n");
 
-    let particle_counts = [1_000, 5_000, 10_000, 20_000, 50_000, 100_000, 200_000, 500_000];
+    let particle_counts = [
+        1_000, 5_000, 10_000, 20_000, 50_000, 100_000, 200_000, 500_000,
+    ];
     let dim = 4;
     let warmup_steps = 50;
     let bench_steps = 200;
 
-    println!("{:>10} {:>12} {:>12} {:>12} {:>12}",
-             "Particles", "Steps/sec", "µs/step", "MB (est)", "Status");
+    println!(
+        "{:>10} {:>12} {:>12} {:>12} {:>12}",
+        "Particles", "Steps/sec", "µs/step", "MB (est)", "Status"
+    );
     println!("{}", "-".repeat(62));
 
     for &n in &particle_counts {
@@ -36,7 +40,8 @@ fn main() {
         let mem_mb = (n * 272) as f64 / 1_000_000.0;
 
         let result = std::panic::catch_unwind(|| {
-            let mut system = ThermodynamicSystem::with_loss_function(n, dim, 1.0, LossFunction::Rastrigin);
+            let mut system =
+                ThermodynamicSystem::with_loss_function(n, dim, 1.0, LossFunction::Rastrigin);
             system.set_repulsion_samples(64);
 
             // Warmup
@@ -59,12 +64,16 @@ fn main() {
 
         match result {
             Ok((steps_per_sec, us_per_step)) => {
-                println!("{:>10} {:>12.1} {:>12.1} {:>12.1} {:>12}",
-                         n, steps_per_sec, us_per_step, mem_mb, "OK");
+                println!(
+                    "{:>10} {:>12.1} {:>12.1} {:>12.1} {:>12}",
+                    n, steps_per_sec, us_per_step, mem_mb, "OK"
+                );
             }
             Err(_) => {
-                println!("{:>10} {:>12} {:>12} {:>12.1} {:>12}",
-                         n, "-", "-", mem_mb, "FAILED");
+                println!(
+                    "{:>10} {:>12} {:>12} {:>12.1} {:>12}",
+                    n, "-", "-", mem_mb, "FAILED"
+                );
                 break;
             }
         }
@@ -75,16 +84,19 @@ fn main() {
     println!("TEST 2: DIMENSION SCALING (particles=1000, K=64)");
     println!("═══════════════════════════════════════════════════════════════════════════\n");
 
-    let dimensions = [2, 4, 8, 16, 32, 64];  // MAX_DIM is 64
+    let dimensions = [2, 4, 8, 16, 32, 64]; // MAX_DIM is 64
     let n = 1000;
 
-    println!("{:>10} {:>12} {:>12} {:>15} {:>12}",
-             "Dim", "Steps/sec", "µs/step", "Search Space", "Status");
+    println!(
+        "{:>10} {:>12} {:>12} {:>15} {:>12}",
+        "Dim", "Steps/sec", "µs/step", "Search Space", "Status"
+    );
     println!("{}", "-".repeat(65));
 
     for &d in &dimensions {
         let result = std::panic::catch_unwind(|| {
-            let mut system = ThermodynamicSystem::with_loss_function(n, d, 1.0, LossFunction::Rastrigin);
+            let mut system =
+                ThermodynamicSystem::with_loss_function(n, d, 1.0, LossFunction::Rastrigin);
             system.set_repulsion_samples(64);
 
             // Warmup
@@ -110,12 +122,16 @@ fn main() {
 
         match result {
             Ok((steps_per_sec, us_per_step)) => {
-                println!("{:>10} {:>12.1} {:>12.1} {:>15} {:>12}",
-                         d, steps_per_sec, us_per_step, search_space, "OK");
+                println!(
+                    "{:>10} {:>12.1} {:>12.1} {:>15} {:>12}",
+                    d, steps_per_sec, us_per_step, search_space, "OK"
+                );
             }
             Err(_) => {
-                println!("{:>10} {:>12} {:>12} {:>15} {:>12}",
-                         d, "-", "-", search_space, "FAILED");
+                println!(
+                    "{:>10} {:>12} {:>12} {:>15} {:>12}",
+                    d, "-", "-", search_space, "FAILED"
+                );
             }
         }
     }
@@ -125,18 +141,21 @@ fn main() {
     println!("TEST 3: REPULSION SAMPLING IMPACT AT SCALE (particles=20000, dim=4)");
     println!("═══════════════════════════════════════════════════════════════════════════\n");
 
-    let n = 20_000;  // Moderate size for repulsion testing
+    let n = 20_000; // Moderate size for repulsion testing
     let repulsion_samples = [0, 16, 32, 64, 128, 256];
 
-    println!("{:>10} {:>12} {:>12} {:>12} {:>15}",
-             "K samples", "Steps/sec", "µs/step", "Speedup", "Complexity");
+    println!(
+        "{:>10} {:>12} {:>12} {:>12} {:>15}",
+        "K samples", "Steps/sec", "µs/step", "Speedup", "Complexity"
+    );
     println!("{}", "-".repeat(65));
 
     let mut baseline_time = None;
 
     for &k in &repulsion_samples {
         let result = std::panic::catch_unwind(|| {
-            let mut system = ThermodynamicSystem::with_loss_function(n, dim, 1.0, LossFunction::Rastrigin);
+            let mut system =
+                ThermodynamicSystem::with_loss_function(n, dim, 1.0, LossFunction::Rastrigin);
             system.set_repulsion_samples(k);
 
             // Warmup
@@ -169,12 +188,16 @@ fn main() {
                     baseline_time = Some(us_per_step);
                 }
                 let speedup = baseline_time.map_or(1.0, |b| b / us_per_step);
-                println!("{:>10} {:>12.1} {:>12.1} {:>12.2}x {:>15}",
-                         k, steps_per_sec, us_per_step, speedup, complexity);
+                println!(
+                    "{:>10} {:>12.1} {:>12.1} {:>12.2}x {:>15}",
+                    k, steps_per_sec, us_per_step, speedup, complexity
+                );
             }
             Err(_) => {
-                println!("{:>10} {:>12} {:>12} {:>12} {:>15}",
-                         k, "-", "-", "-", complexity);
+                println!(
+                    "{:>10} {:>12} {:>12} {:>12} {:>15}",
+                    k, "-", "-", "-", complexity
+                );
             }
         }
     }
@@ -188,14 +211,17 @@ fn main() {
     let dim = 8;
     let opt_steps = 3000;
 
-    println!("{:>10} {:>12} {:>12} {:>15} {:>12}",
-             "Particles", "Best Loss", "Mean Loss", "Time (s)", "Global?");
+    println!(
+        "{:>10} {:>12} {:>12} {:>15} {:>12}",
+        "Particles", "Best Loss", "Mean Loss", "Time (s)", "Global?"
+    );
     println!("{}", "-".repeat(65));
 
     for &n in &particle_counts_opt {
         let start = Instant::now();
 
-        let mut system = ThermodynamicSystem::with_loss_function(n, dim, 5.0, LossFunction::Rastrigin);
+        let mut system =
+            ThermodynamicSystem::with_loss_function(n, dim, 5.0, LossFunction::Rastrigin);
         system.set_repulsion_samples(if n > 5000 { 32 } else { 64 });
 
         // Simulated annealing
@@ -209,7 +235,8 @@ fn main() {
         let elapsed = start.elapsed();
         let particles = system.read_particles();
 
-        let energies: Vec<f32> = particles.iter()
+        let energies: Vec<f32> = particles
+            .iter()
             .filter(|p| !p.energy.is_nan())
             .map(|p| p.energy)
             .collect();
@@ -220,9 +247,14 @@ fn main() {
         // Rastrigin global minimum is 0 at origin
         let is_global = best < 1.0;
 
-        println!("{:>10} {:>12.4} {:>12.2} {:>15.2} {:>12}",
-                 n, best, mean, elapsed.as_secs_f64(),
-                 if is_global { "YES" } else { "no" });
+        println!(
+            "{:>10} {:>12.4} {:>12.2} {:>15.2} {:>12}",
+            n,
+            best,
+            mean,
+            elapsed.as_secs_f64(),
+            if is_global { "YES" } else { "no" }
+        );
     }
 
     // Test 5: Memory stress test
@@ -231,10 +263,14 @@ fn main() {
     println!("═══════════════════════════════════════════════════════════════════════════\n");
 
     let mut max_particles = 0;
-    let test_counts = [100_000, 150_000, 200_000, 250_000, 300_000, 400_000, 500_000];
+    let test_counts = [
+        100_000, 150_000, 200_000, 250_000, 300_000, 400_000, 500_000,
+    ];
 
-    println!("{:>10} {:>12} {:>12} {:>12}",
-             "Particles", "MB (est)", "Init Time", "Status");
+    println!(
+        "{:>10} {:>12} {:>12} {:>12}",
+        "Particles", "MB (est)", "Init Time", "Status"
+    );
     println!("{}", "-".repeat(50));
 
     for &n in &test_counts {
@@ -251,12 +287,16 @@ fn main() {
         match result {
             Ok(_) => {
                 max_particles = n;
-                println!("{:>10} {:>12.1} {:>12.2}s {:>12}",
-                         n, mem_mb, elapsed.as_secs_f64(), "OK");
+                println!(
+                    "{:>10} {:>12.1} {:>12.2}s {:>12}",
+                    n,
+                    mem_mb,
+                    elapsed.as_secs_f64(),
+                    "OK"
+                );
             }
             Err(_) => {
-                println!("{:>10} {:>12.1} {:>12} {:>12}",
-                         n, mem_mb, "-", "FAILED");
+                println!("{:>10} {:>12.1} {:>12} {:>12}", n, mem_mb, "-", "FAILED");
                 break;
             }
         }

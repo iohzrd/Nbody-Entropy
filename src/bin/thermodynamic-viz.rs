@@ -13,8 +13,8 @@
 
 use iced::keyboard;
 use iced::mouse;
-use iced::widget::{canvas, container, Column, Row, Text};
-use iced::{event, Color, Element, Event, Length, Point, Rectangle, Renderer, Subscription, Theme};
+use iced::widget::{Column, Row, Text, canvas, container};
+use iced::{Color, Element, Event, Length, Point, Rectangle, Renderer, Subscription, Theme, event};
 use temper::thermodynamic::{ThermodynamicMode, ThermodynamicParticle, ThermodynamicSystem};
 
 const PARTICLE_COUNT: usize = 500;
@@ -102,7 +102,9 @@ fn update(app: &mut App, message: Message) {
 
                 // Compute bit balance as quality metric
                 if app.entropy_bits.len() >= 1000 {
-                    let ones: u32 = app.entropy_bits.iter()
+                    let ones: u32 = app
+                        .entropy_bits
+                        .iter()
                         .take(1000)
                         .map(|x| x.count_ones())
                         .sum();
@@ -140,39 +142,35 @@ fn update(app: &mut App, message: Message) {
         Message::Reset => {
             app.reset_particles();
         }
-        Message::Event(Event::Keyboard(keyboard::Event::KeyPressed { key, .. })) => {
-            match key {
-                keyboard::Key::Named(keyboard::key::Named::ArrowUp) => {
-                    app.temperature = (app.temperature * 1.5).min(100.0);
+        Message::Event(Event::Keyboard(keyboard::Event::KeyPressed { key, .. })) => match key {
+            keyboard::Key::Named(keyboard::key::Named::ArrowUp) => {
+                app.temperature = (app.temperature * 1.5).min(100.0);
+                app.system.set_temperature(app.temperature);
+            }
+            keyboard::Key::Named(keyboard::key::Named::ArrowDown) => {
+                app.temperature = (app.temperature / 1.5).max(0.0001);
+                app.system.set_temperature(app.temperature);
+            }
+            keyboard::Key::Named(keyboard::key::Named::Space) => {
+                app.reset_particles();
+            }
+            keyboard::Key::Character(c) => match c.as_str() {
+                "1" => {
+                    app.temperature = T_OPTIMIZE;
                     app.system.set_temperature(app.temperature);
                 }
-                keyboard::Key::Named(keyboard::key::Named::ArrowDown) => {
-                    app.temperature = (app.temperature / 1.5).max(0.0001);
+                "2" => {
+                    app.temperature = T_SAMPLE;
                     app.system.set_temperature(app.temperature);
                 }
-                keyboard::Key::Named(keyboard::key::Named::Space) => {
-                    app.reset_particles();
-                }
-                keyboard::Key::Character(c) => {
-                    match c.as_str() {
-                        "1" => {
-                            app.temperature = T_OPTIMIZE;
-                            app.system.set_temperature(app.temperature);
-                        }
-                        "2" => {
-                            app.temperature = T_SAMPLE;
-                            app.system.set_temperature(app.temperature);
-                        }
-                        "3" => {
-                            app.temperature = T_ENTROPY;
-                            app.system.set_temperature(app.temperature);
-                        }
-                        _ => {}
-                    }
+                "3" => {
+                    app.temperature = T_ENTROPY;
+                    app.system.set_temperature(app.temperature);
                 }
                 _ => {}
-            }
-        }
+            },
+            _ => {}
+        },
         Message::Event(_) => {}
     }
 }
@@ -200,26 +198,16 @@ fn view(app: &App) -> Element<'_, Message> {
     let controls_text = "Keys: 1=Optimize  2=Sample  3=Entropy  ↑↓=Adjust T  Space=Reset";
 
     Column::new()
+        .push(Text::new(info_text).size(16))
+        .push(Text::new(controls_text).size(14))
         .push(
-            Text::new(info_text)
-                .size(16)
-        )
-        .push(
-            Text::new(controls_text)
-                .size(14)
-        )
-        .push(
-            container(
-                canvas(app)
-                    .width(Length::Fill)
-                    .height(Length::Fill),
-            )
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .style(move |_| container::Style {
-                background: Some(iced::Background::Color(Color::from_rgb(0.05, 0.05, 0.1))),
-                ..Default::default()
-            })
+            container(canvas(app).width(Length::Fill).height(Length::Fill))
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .style(move |_| container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgb(0.05, 0.05, 0.1))),
+                    ..Default::default()
+                }),
         )
         .into()
 }
@@ -253,10 +241,20 @@ impl canvas::Program<Message> for App {
                 let y = ((i as f32 - DOMAIN_MIN) / DOMAIN_SIZE) * size.height;
 
                 let vline = canvas::Path::line(Point::new(x, 0.0), Point::new(x, size.height));
-                frame.stroke(&vline, canvas::Stroke::default().with_color(grid_color).with_width(0.5));
+                frame.stroke(
+                    &vline,
+                    canvas::Stroke::default()
+                        .with_color(grid_color)
+                        .with_width(0.5),
+                );
 
                 let hline = canvas::Path::line(Point::new(0.0, y), Point::new(size.width, y));
-                frame.stroke(&hline, canvas::Stroke::default().with_color(grid_color).with_width(0.5));
+                frame.stroke(
+                    &hline,
+                    canvas::Stroke::default()
+                        .with_color(grid_color)
+                        .with_width(0.5),
+                );
             }
 
             // Draw the two optima (for 2D neural net)
@@ -332,7 +330,7 @@ impl canvas::Program<Message> for App {
             // Temperature indicator (log scale)
             // Map log(T) from log(0.0001) to log(100) to [0, 1]
             let t_min = 0.0001_f32.ln(); // -9.2
-            let t_max = 100.0_f32.ln();  // 4.6
+            let t_max = 100.0_f32.ln(); // 4.6
             let t_log = (self.temperature.max(0.0001).ln() - t_min) / (t_max - t_min);
             let t_pos = t_log.clamp(0.0, 1.0);
             let indicator_y = bar_y + bar_height * (1.0 - t_pos);
@@ -363,7 +361,8 @@ impl canvas::Program<Message> for App {
                 if p.energy.is_nan() {
                     continue;
                 }
-                let bin_idx = ((p.energy / max_energy) * (num_bins - 1) as f32).clamp(0.0, (num_bins - 1) as f32) as usize;
+                let bin_idx = ((p.energy / max_energy) * (num_bins - 1) as f32)
+                    .clamp(0.0, (num_bins - 1) as f32) as usize;
                 bins[bin_idx] += 1;
             }
             let max_count = bins.iter().max().copied().unwrap_or(1).max(1);
@@ -405,7 +404,13 @@ impl canvas::Program<Message> for App {
                 for (i, &balance) in self.entropy_history.iter().enumerate() {
                     let ex = ent_x + (i as f32 / self.entropy_history.len() as f32) * ent_width;
                     let ey = hist_y + hist_height - ent_height / 2.0 - balance * ent_height * 10.0;
-                    let dot = canvas::Path::circle(Point::new(ex, ey.clamp(hist_y + hist_height - ent_height, hist_y + hist_height)), 2.0);
+                    let dot = canvas::Path::circle(
+                        Point::new(
+                            ex,
+                            ey.clamp(hist_y + hist_height - ent_height, hist_y + hist_height),
+                        ),
+                        2.0,
+                    );
                     frame.fill(&dot, Color::from_rgb(0.0, 1.0, 1.0));
                 }
 
@@ -414,7 +419,12 @@ impl canvas::Program<Message> for App {
                     Point::new(ent_x, hist_y + hist_height - ent_height / 2.0),
                     Point::new(ent_x + ent_width, hist_y + hist_height - ent_height / 2.0),
                 );
-                frame.stroke(&ref_line, canvas::Stroke::default().with_color(Color::from_rgba(0.5, 0.5, 0.5, 0.5)).with_width(1.0));
+                frame.stroke(
+                    &ref_line,
+                    canvas::Stroke::default()
+                        .with_color(Color::from_rgba(0.5, 0.5, 0.5, 0.5))
+                        .with_width(1.0),
+                );
             }
         });
 

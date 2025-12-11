@@ -6,47 +6,75 @@
 //!
 //! This proves the system can scale to larger networks with more parameters.
 
-use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 use std::time::Instant;
+use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 
-const PARTICLE_COUNT: usize = 1000;  // More particles for higher-dim search
-const DIM: usize = 37;  // 2*4 + 4 + 4*4 + 4 + 4*1 + 1 = 37 parameters
+const PARTICLE_COUNT: usize = 1000; // More particles for higher-dim search
+const DIM: usize = 37; // 2*4 + 4 + 4*4 + 4 + 4*1 + 1 = 37 parameters
 
 fn main() {
-    println!("{}",
-        "╔══════════════════════════════════════════════════════════════════════════╗");
-    println!("{}",
-        "║           DEEP NEURAL NETWORK BENCHMARK                                  ║");
-    println!("{}",
-        "╠══════════════════════════════════════════════════════════════════════════╣");
-    println!("{}",
-        "║  Training 3-layer MLP with thermodynamic particle optimization           ║");
-    println!("{}",
-        "║  Architecture: 2 inputs -> 4 hidden -> 4 hidden -> 1 output              ║");
-    println!("{}",
-        "║  Dataset: Concentric circles (100 points)                                ║");
-    println!("{}",
-        "╚══════════════════════════════════════════════════════════════════════════╝\n");
+    println!(
+        "{}",
+        "╔══════════════════════════════════════════════════════════════════════════╗"
+    );
+    println!(
+        "{}",
+        "║           DEEP NEURAL NETWORK BENCHMARK                                  ║"
+    );
+    println!(
+        "{}",
+        "╠══════════════════════════════════════════════════════════════════════════╣"
+    );
+    println!(
+        "{}",
+        "║  Training 3-layer MLP with thermodynamic particle optimization           ║"
+    );
+    println!(
+        "{}",
+        "║  Architecture: 2 inputs -> 4 hidden -> 4 hidden -> 1 output              ║"
+    );
+    println!(
+        "{}",
+        "║  Dataset: Concentric circles (100 points)                                ║"
+    );
+    println!(
+        "{}",
+        "╚══════════════════════════════════════════════════════════════════════════╝\n"
+    );
 
     let passed = train_deep_mlp();
 
-    println!("{}",
-        "╔══════════════════════════════════════════════════════════════════════════╗");
-    println!("{}",
-        "║                              SUMMARY                                     ║");
-    println!("{}",
-        "╠══════════════════════════════════════════════════════════════════════════╣");
+    println!(
+        "{}",
+        "╔══════════════════════════════════════════════════════════════════════════╗"
+    );
+    println!(
+        "{}",
+        "║                              SUMMARY                                     ║"
+    );
+    println!(
+        "{}",
+        "╠══════════════════════════════════════════════════════════════════════════╣"
+    );
     if passed {
-        println!("{}",
-            "║  ✓ DEEP NEURAL NETWORK TEST PASSED                                      ║");
-        println!("{}",
-            "║  37-parameter MLP successfully trained on circles dataset!              ║");
+        println!(
+            "{}",
+            "║  ✓ DEEP NEURAL NETWORK TEST PASSED                                      ║"
+        );
+        println!(
+            "{}",
+            "║  37-parameter MLP successfully trained on circles dataset!              ║"
+        );
     } else {
-        println!("{}",
-            "║  ✗ TEST FAILED                                                          ║");
+        println!(
+            "{}",
+            "║  ✗ TEST FAILED                                                          ║"
+        );
     }
-    println!("{}",
-        "╚══════════════════════════════════════════════════════════════════════════╝");
+    println!(
+        "{}",
+        "╚══════════════════════════════════════════════════════════════════════════╝"
+    );
 }
 
 fn train_deep_mlp() -> bool {
@@ -59,9 +87,8 @@ fn train_deep_mlp() -> bool {
 
     // Use simulated annealing with more steps for harder problem
     let steps = 8000;
-    let mut system = ThermodynamicSystem::with_loss_function(
-        PARTICLE_COUNT, DIM, 2.0, LossFunction::MlpDeep
-    );
+    let mut system =
+        ThermodynamicSystem::with_loss_function(PARTICLE_COUNT, DIM, 2.0, LossFunction::MlpDeep);
 
     println!("  Training with simulated annealing ({} steps)...", steps);
 
@@ -76,17 +103,22 @@ fn train_deep_mlp() -> bool {
         // Progress updates
         if step % 2000 == 0 && step > 0 {
             let particles = system.read_particles();
-            let min_loss = particles.iter()
+            let min_loss = particles
+                .iter()
                 .filter(|p| !p.energy.is_nan())
                 .map(|p| p.energy)
                 .fold(f32::MAX, f32::min);
-            println!("    Step {}: min_loss = {:.4}, temp = {:.6}", step, min_loss, temp);
+            println!(
+                "    Step {}: min_loss = {:.4}, temp = {:.6}",
+                step, min_loss, temp
+            );
         }
     }
     let elapsed = start.elapsed();
 
     let particles = system.read_particles();
-    let energies: Vec<f32> = particles.iter()
+    let energies: Vec<f32> = particles
+        .iter()
         .filter(|p| !p.energy.is_nan())
         .map(|p| p.energy)
         .collect();
@@ -96,7 +128,8 @@ fn train_deep_mlp() -> bool {
     let low_loss = energies.iter().filter(|&&e| e < 0.5).count();
 
     // Find best network
-    let best = particles.iter()
+    let best = particles
+        .iter()
         .filter(|p| !p.energy.is_nan())
         .min_by(|a, b| a.energy.partial_cmp(&b.energy).unwrap())
         .unwrap();
@@ -105,7 +138,10 @@ fn train_deep_mlp() -> bool {
     println!("  Results:");
     println!("    Min loss (BCE): {:.6}", min_loss);
     println!("    Mean loss:      {:.6}", mean_loss);
-    println!("    Low loss (<0.5): {:.1}%", low_loss as f32 / energies.len() as f32 * 100.0);
+    println!(
+        "    Low loss (<0.5): {:.1}%",
+        low_loss as f32 / energies.len() as f32 * 100.0
+    );
 
     // Test on sample points
     println!("\n  Testing on sample points:");
@@ -129,10 +165,14 @@ fn train_deep_mlp() -> bool {
         let h1_3 = (pos[6] * x + pos[7] * y + pos[11]).tanh();
 
         // Layer 2: hidden1 (4) -> hidden2 (4)
-        let h2_0 = (pos[12] * h1_0 + pos[13] * h1_1 + pos[14] * h1_2 + pos[15] * h1_3 + pos[28]).tanh();
-        let h2_1 = (pos[16] * h1_0 + pos[17] * h1_1 + pos[18] * h1_2 + pos[19] * h1_3 + pos[29]).tanh();
-        let h2_2 = (pos[20] * h1_0 + pos[21] * h1_1 + pos[22] * h1_2 + pos[23] * h1_3 + pos[30]).tanh();
-        let h2_3 = (pos[24] * h1_0 + pos[25] * h1_1 + pos[26] * h1_2 + pos[27] * h1_3 + pos[31]).tanh();
+        let h2_0 =
+            (pos[12] * h1_0 + pos[13] * h1_1 + pos[14] * h1_2 + pos[15] * h1_3 + pos[28]).tanh();
+        let h2_1 =
+            (pos[16] * h1_0 + pos[17] * h1_1 + pos[18] * h1_2 + pos[19] * h1_3 + pos[29]).tanh();
+        let h2_2 =
+            (pos[20] * h1_0 + pos[21] * h1_1 + pos[22] * h1_2 + pos[23] * h1_3 + pos[30]).tanh();
+        let h2_3 =
+            (pos[24] * h1_0 + pos[25] * h1_1 + pos[26] * h1_2 + pos[27] * h1_3 + pos[31]).tanh();
 
         // Layer 3: hidden2 (4) -> output (1)
         let logit = pos[32] * h2_0 + pos[33] * h2_1 + pos[34] * h2_2 + pos[35] * h2_3 + pos[36];
@@ -145,7 +185,12 @@ fn train_deep_mlp() -> bool {
     }
 
     let accuracy = correct as f32 / total as f32;
-    println!("    Accuracy: {}/{} = {:.0}%", correct, total, accuracy * 100.0);
+    println!(
+        "    Accuracy: {}/{} = {:.0}%",
+        correct,
+        total,
+        accuracy * 100.0
+    );
 
     // Pass if we achieve reasonable loss and accuracy
     let passed = min_loss < 0.7 || accuracy >= 0.7;

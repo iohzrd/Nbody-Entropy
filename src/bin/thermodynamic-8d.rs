@@ -5,8 +5,8 @@
 //!
 //! This proves the system scales beyond 2D toy problems.
 
-use temper::thermodynamic::{ThermodynamicMode, ThermodynamicSystem};
 use std::time::Instant;
+use temper::thermodynamic::{ThermodynamicMode, ThermodynamicSystem};
 
 const PARTICLE_COUNT: usize = 1000;
 const DIM: usize = 8;
@@ -61,7 +61,10 @@ fn test_8d_optimize() -> bool {
     let temperature = 0.001;
     let steps = 800;
 
-    println!("  Creating 8D system with {} particles, T = {}", PARTICLE_COUNT, temperature);
+    println!(
+        "  Creating 8D system with {} particles, T = {}",
+        PARTICLE_COUNT, temperature
+    );
     let mut system = ThermodynamicSystem::new(PARTICLE_COUNT, DIM, temperature);
 
     assert_eq!(system.mode(), ThermodynamicMode::Optimize);
@@ -75,7 +78,8 @@ fn test_8d_optimize() -> bool {
     println!("  Ran {} steps in {:?}", steps, elapsed);
 
     let particles = system.read_particles();
-    let energies: Vec<f32> = particles.iter()
+    let energies: Vec<f32> = particles
+        .iter()
         .filter(|p| !p.energy.is_nan())
         .map(|p| p.energy)
         .collect();
@@ -101,7 +105,10 @@ fn test_8d_sample() -> bool {
     let temperature = 0.1;
     let steps = 1500;
 
-    println!("  Creating 8D system with {} particles, T = {}", PARTICLE_COUNT, temperature);
+    println!(
+        "  Creating 8D system with {} particles, T = {}",
+        PARTICLE_COUNT, temperature
+    );
     let mut system = ThermodynamicSystem::new(PARTICLE_COUNT, DIM, temperature);
 
     assert_eq!(system.mode(), ThermodynamicMode::Sample);
@@ -115,7 +122,8 @@ fn test_8d_sample() -> bool {
     println!("  Ran {} steps in {:?}", steps, elapsed);
 
     let particles = system.read_particles();
-    let energies: Vec<f32> = particles.iter()
+    let energies: Vec<f32> = particles
+        .iter()
         .filter(|p| !p.energy.is_nan())
         .map(|p| p.energy)
         .collect();
@@ -127,11 +135,14 @@ fn test_8d_sample() -> bool {
     // Compute spread across all 8 dimensions
     let mut total_spread = 0.0;
     for d in 0..DIM {
-        let vals: Vec<f32> = particles.iter()
+        let vals: Vec<f32> = particles
+            .iter()
             .filter(|p| !p.pos[d].is_nan())
             .map(|p| p.pos[d])
             .collect();
-        if vals.is_empty() { continue; }
+        if vals.is_empty() {
+            continue;
+        }
         let mean = vals.iter().sum::<f32>() / vals.len() as f32;
         let var = vals.iter().map(|x| (x - mean).powi(2)).sum::<f32>() / vals.len() as f32;
         total_spread += var.sqrt();
@@ -142,7 +153,9 @@ fn test_8d_sample() -> bool {
     // Modes are at combinations of (±1.5*scale, ±2.0*scale) for each pair
     let mut mode_counts = vec![0usize; 16];
     for p in &particles {
-        if p.pos[0].is_nan() { continue; }
+        if p.pos[0].is_nan() {
+            continue;
+        }
         let mut mode_idx = 0usize;
         for pair in 0..4 {
             let d = pair * 2;
@@ -168,7 +181,10 @@ fn test_8d_sample() -> bool {
     println!("    Mean energy:     {:.4}", mean_energy);
     println!("    Low energy (<1): {:.1}%", low_energy_frac * 100.0);
     println!("    Avg spread (σ):  {:.3}", avg_spread);
-    println!("    Modes populated: {}/16 (with >10 particles each)", modes_populated);
+    println!(
+        "    Modes populated: {}/16 (with >10 particles each)",
+        modes_populated
+    );
 
     // In 8D sampling, we expect multiple modes to be populated
     let passed = low_energy_frac > 0.5 && modes_populated >= 4 && avg_spread > 0.3;
@@ -181,7 +197,10 @@ fn test_8d_entropy() -> bool {
     let warmup = 100;
     let steps = 500;
 
-    println!("  Creating 8D system with {} particles, T = {}", PARTICLE_COUNT, temperature);
+    println!(
+        "  Creating 8D system with {} particles, T = {}",
+        PARTICLE_COUNT, temperature
+    );
     let mut system = ThermodynamicSystem::new(PARTICLE_COUNT, DIM, temperature);
 
     assert_eq!(system.mode(), ThermodynamicMode::Entropy);
@@ -201,7 +220,11 @@ fn test_8d_entropy() -> bool {
         all_entropy.extend(entropy);
     }
     let elapsed = start.elapsed();
-    println!("  Collected {} entropy values in {:?}", all_entropy.len(), elapsed);
+    println!(
+        "  Collected {} entropy values in {:?}",
+        all_entropy.len(),
+        elapsed
+    );
 
     if all_entropy.is_empty() {
         println!("  ERROR: No entropy collected!");
@@ -223,7 +246,8 @@ fn test_8d_entropy() -> bool {
     }
     let total_bytes = all_entropy.len() * 4;
     let expected = total_bytes as f64 / 256.0;
-    let chi_sq: f64 = byte_counts.iter()
+    let chi_sq: f64 = byte_counts
+        .iter()
         .map(|&c| (c as f64 - expected).powi(2) / expected)
         .sum();
 

@@ -10,8 +10,8 @@
 //! This validates that the unified thermodynamic system produces cryptographic-quality
 //! randomness when operating in entropy mode (T >> 1).
 
-use temper::thermodynamic::ThermodynamicSystem;
 use std::io::{self, Write};
+use temper::thermodynamic::ThermodynamicSystem;
 
 const PARTICLE_COUNT: usize = 1000;
 const DIM: usize = 2;

@@ -5,9 +5,9 @@
 //!
 //! Run with: cargo run --release --features gpu --bin gradient-benchmark
 
-use temper::expr::*;
-use temper::ThermodynamicSystem;
 use std::time::Instant;
+use temper::ThermodynamicSystem;
+use temper::expr::*;
 
 fn main() {
     println!("╔══════════════════════════════════════════════════════════════════════════╗");
@@ -37,8 +37,10 @@ fn main() {
     println!("  Benchmark steps: {}", bench_steps);
     println!();
 
-    println!("{:>12} {:>14} {:>14} {:>12} {:>12}",
-             "Function", "Analytical", "Numerical", "Speedup", "A.Best/N.Best");
+    println!(
+        "{:>12} {:>14} {:>14} {:>12} {:>12}",
+        "Function", "Analytical", "Numerical", "Speedup", "A.Best/N.Best"
+    );
     println!("{}", "-".repeat(70));
 
     for (name, expr_fn) in &functions {
@@ -67,12 +69,14 @@ fn main() {
         let speedup = numerical_result.us_per_step / analytical_result.us_per_step;
         let quality_ratio = analytical_result.best_energy / numerical_result.best_energy;
 
-        println!("{:>12} {:>12.1}µs {:>12.1}µs {:>11.2}x {:>12.4}",
-                 name,
-                 analytical_result.us_per_step,
-                 numerical_result.us_per_step,
-                 speedup,
-                 quality_ratio);
+        println!(
+            "{:>12} {:>12.1}µs {:>12.1}µs {:>11.2}x {:>12.4}",
+            name,
+            analytical_result.us_per_step,
+            numerical_result.us_per_step,
+            speedup,
+            quality_ratio
+        );
     }
 
     println!();
@@ -88,8 +92,10 @@ fn main() {
 
     let particle_counts = [500, 1000, 2000, 5000, 10000];
 
-    println!("{:>10} {:>14} {:>14} {:>12} {:>14} {:>14}",
-             "Particles", "A.µs/step", "N.µs/step", "Speedup", "A.Best", "N.Best");
+    println!(
+        "{:>10} {:>14} {:>14} {:>12} {:>14} {:>14}",
+        "Particles", "A.µs/step", "N.µs/step", "Speedup", "A.Best", "N.Best"
+    );
     println!("{}", "-".repeat(82));
 
     for &n in &particle_counts {
@@ -98,13 +104,15 @@ fn main() {
 
         let speedup = numerical.us_per_step / analytical.us_per_step;
 
-        println!("{:>10} {:>12.1}µs {:>12.1}µs {:>11.2}x {:>14.6} {:>14.6}",
-                 n,
-                 analytical.us_per_step,
-                 numerical.us_per_step,
-                 speedup,
-                 analytical.best_energy,
-                 numerical.best_energy);
+        println!(
+            "{:>10} {:>12.1}µs {:>12.1}µs {:>11.2}x {:>14.6} {:>14.6}",
+            n,
+            analytical.us_per_step,
+            numerical.us_per_step,
+            speedup,
+            analytical.best_energy,
+            numerical.best_energy
+        );
     }
 
     println!();
@@ -128,13 +136,8 @@ fn benchmark_expr(
     bench_steps: usize,
 ) -> BenchResult {
     // Create system with the specified gradient type
-    let mut system = ThermodynamicSystem::with_expr_options(
-        particle_count,
-        dim,
-        2.0,
-        expr,
-        analytical,
-    );
+    let mut system =
+        ThermodynamicSystem::with_expr_options(particle_count, dim, 2.0, expr, analytical);
     system.set_repulsion_samples(32);
 
     // Warmup

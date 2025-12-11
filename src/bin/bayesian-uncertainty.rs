@@ -10,7 +10,7 @@
 //!
 //! Run with: cargo run --release --features gpu --bin bayesian-uncertainty
 
-use temper::{ThermodynamicSystem, LossFunction};
+use temper::{LossFunction, ThermodynamicSystem};
 
 const PARTICLE_COUNT: usize = 200;
 const DIM: usize = 9; // 2->2->1 MLP: 2*2 + 2 + 2*1 + 1 = 9 params
@@ -29,9 +29,8 @@ fn main() {
     println!("Phase 1: Optimization (T → 0)");
     println!("-----------------------------");
 
-    let mut system = ThermodynamicSystem::with_loss_function(
-        PARTICLE_COUNT, DIM, 2.0, LossFunction::MlpXor
-    );
+    let mut system =
+        ThermodynamicSystem::with_loss_function(PARTICLE_COUNT, DIM, 2.0, LossFunction::MlpXor);
     system.set_repulsion_samples(0); // Pure optimization, no SVGD
 
     // Anneal to find good weights
@@ -44,7 +43,8 @@ fn main() {
 
         if step % 500 == 0 {
             let particles = system.read_particles();
-            let min_e = particles.iter()
+            let min_e = particles
+                .iter()
                 .filter(|p| !p.energy.is_nan())
                 .map(|p| p.energy)
                 .fold(f32::MAX, f32::min);
@@ -53,14 +53,18 @@ fn main() {
     }
 
     let particles = system.read_particles();
-    let best_idx = particles.iter()
+    let best_idx = particles
+        .iter()
         .enumerate()
         .filter(|(_, p)| !p.energy.is_nan())
         .min_by(|(_, a), (_, b)| a.energy.partial_cmp(&b.energy).unwrap())
         .map(|(i, _)| i)
         .unwrap();
 
-    println!("\nBest particle found with loss: {:.6}", particles[best_idx].energy);
+    println!(
+        "\nBest particle found with loss: {:.6}",
+        particles[best_idx].energy
+    );
 
     // Phase 2: Posterior Sampling - spread particles across posterior
     println!("\nPhase 2: Posterior Sampling (T = 0.1)");
@@ -78,13 +82,20 @@ fn main() {
 
         if step % 250 == 0 {
             let particles = system.read_particles();
-            let energies: Vec<f32> = particles.iter()
+            let energies: Vec<f32> = particles
+                .iter()
                 .filter(|p| !p.energy.is_nan())
                 .map(|p| p.energy)
                 .collect();
             let mean_e: f32 = energies.iter().sum::<f32>() / energies.len() as f32;
-            let var_e: f32 = energies.iter().map(|e| (e - mean_e).powi(2)).sum::<f32>() / energies.len() as f32;
-            println!("  Burn-in {:4}: mean_loss={:.4}, std_loss={:.4}", step, mean_e, var_e.sqrt());
+            let var_e: f32 =
+                energies.iter().map(|e| (e - mean_e).powi(2)).sum::<f32>() / energies.len() as f32;
+            println!(
+                "  Burn-in {:4}: mean_loss={:.4}, std_loss={:.4}",
+                step,
+                mean_e,
+                var_e.sqrt()
+            );
         }
     }
 
@@ -100,9 +111,7 @@ fn main() {
         }
         let particles = system.read_particles();
         // Take top-k particles by energy as samples
-        let mut sorted: Vec<_> = particles.iter()
-            .filter(|p| !p.energy.is_nan())
-            .collect();
+        let mut sorted: Vec<_> = particles.iter().filter(|p| !p.energy.is_nan()).collect();
         sorted.sort_by(|a, b| a.energy.partial_cmp(&b.energy).unwrap());
 
         for p in sorted.iter().take(10) {
@@ -114,7 +123,11 @@ fn main() {
         }
 
         if i % 5 == 0 {
-            println!("  Collected batch {} ({} total samples)", i + 1, weight_samples.len());
+            println!(
+                "  Collected batch {} ({} total samples)",
+                i + 1,
+                weight_samples.len()
+            );
         }
     }
 
@@ -141,17 +154,25 @@ fn main() {
         (1.5, 1.5, -1.0),
     ];
 
-    println!("{:>6} {:>6} {:>8} {:>10} {:>10} {:>10}", "x1", "x2", "y_true", "y_mean", "y_std", "region");
+    println!(
+        "{:>6} {:>6} {:>8} {:>10} {:>10} {:>10}",
+        "x1", "x2", "y_true", "y_mean", "y_std", "region"
+    );
     println!("{}", "-".repeat(62));
 
     for (x1, x2, y_true) in test_points {
         // Forward pass through network for each weight sample
-        let predictions: Vec<f32> = weight_samples.iter().map(|w| {
-            forward_pass_2d(x1, x2, w)
-        }).collect();
+        let predictions: Vec<f32> = weight_samples
+            .iter()
+            .map(|w| forward_pass_2d(x1, x2, w))
+            .collect();
 
         let y_mean: f32 = predictions.iter().sum::<f32>() / predictions.len() as f32;
-        let y_var: f32 = predictions.iter().map(|&y| (y - y_mean).powi(2)).sum::<f32>() / predictions.len() as f32;
+        let y_var: f32 = predictions
+            .iter()
+            .map(|&y| (y - y_mean).powi(2))
+            .sum::<f32>()
+            / predictions.len() as f32;
         let y_std = y_var.sqrt();
 
         let region = if y_true >= 0.0 {
@@ -164,9 +185,15 @@ fn main() {
             "extrap"
         };
 
-        let y_true_str = if y_true >= 0.0 { format!("{:.1}", y_true) } else { "?".to_string() };
-        println!("{:6.2} {:6.2} {:>8} {:10.4} {:10.4} {:>10}",
-                 x1, x2, y_true_str, y_mean, y_std, region);
+        let y_true_str = if y_true >= 0.0 {
+            format!("{:.1}", y_true)
+        } else {
+            "?".to_string()
+        };
+        println!(
+            "{:6.2} {:6.2} {:>8} {:10.4} {:10.4} {:>10}",
+            x1, x2, y_true_str, y_mean, y_std, region
+        );
     }
 
     println!("\nKey observations:");

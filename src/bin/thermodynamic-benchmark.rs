@@ -10,8 +10,8 @@
 //! This benchmark establishes the claim that interacting particle systems
 //! are a universal computational primitive controlled by temperature.
 
-use temper::thermodynamic::{ThermodynamicMode, ThermodynamicSystem};
 use std::time::Instant;
+use temper::thermodynamic::{ThermodynamicMode, ThermodynamicSystem};
 
 const PARTICLE_COUNT: usize = 1000;
 const DIM: usize = 2;
@@ -60,18 +60,29 @@ fn main() {
     println!("╔══════════════════════════════════════════════════════════════════════════╗");
     println!("║                              SUMMARY                                     ║");
     println!("╠══════════════════════════════════════════════════════════════════════════╣");
-    println!("║  OPTIMIZE (T=0.001): {:6} | Converged: {:5.1}% | Min Loss: {:.6}       ║",
+    println!(
+        "║  OPTIMIZE (T=0.001): {:6} | Converged: {:5.1}% | Min Loss: {:.6}       ║",
         if opt_result.passed { "PASS" } else { "FAIL" },
         opt_result.converged_fraction * 100.0,
         opt_result.min_loss
     );
-    println!("║  SAMPLE   (T=0.1):   {:6} | Both optima: {} | Spread: {:.3}            ║",
+    println!(
+        "║  SAMPLE   (T=0.1):   {:6} | Both optima: {} | Spread: {:.3}            ║",
         if sample_result.passed { "PASS" } else { "FAIL" },
-        if sample_result.found_both_optima { "YES" } else { "NO " },
+        if sample_result.found_both_optima {
+            "YES"
+        } else {
+            "NO "
+        },
         sample_result.spread
     );
-    println!("║  ENTROPY  (T=10.0):  {:6} | Bit balance: {:.4} | Chi²: {:.2}           ║",
-        if entropy_result.passed { "PASS" } else { "FAIL" },
+    println!(
+        "║  ENTROPY  (T=10.0):  {:6} | Bit balance: {:.4} | Chi²: {:.2}           ║",
+        if entropy_result.passed {
+            "PASS"
+        } else {
+            "FAIL"
+        },
         entropy_result.bit_balance,
         entropy_result.chi_squared
     );
@@ -95,7 +106,10 @@ fn test_optimize_mode() -> OptimizeResult {
     let temperature = 0.001;
     let steps = 500;
 
-    println!("  Creating system with {} particles, T = {}", PARTICLE_COUNT, temperature);
+    println!(
+        "  Creating system with {} particles, T = {}",
+        PARTICLE_COUNT, temperature
+    );
     let mut system = ThermodynamicSystem::new(PARTICLE_COUNT, DIM, temperature);
 
     assert_eq!(system.mode(), ThermodynamicMode::Optimize);
@@ -109,7 +123,8 @@ fn test_optimize_mode() -> OptimizeResult {
     println!("  Ran {} steps in {:?}", steps, elapsed);
 
     let particles = system.read_particles();
-    let energies: Vec<f32> = particles.iter()
+    let energies: Vec<f32> = particles
+        .iter()
         .filter(|p| !p.energy.is_nan())
         .map(|p| p.energy)
         .collect();
@@ -123,11 +138,17 @@ fn test_optimize_mode() -> OptimizeResult {
     let mut near_opt1 = 0;
     let mut near_opt2 = 0;
     for p in &particles {
-        if p.pos[0].is_nan() { continue; }
+        if p.pos[0].is_nan() {
+            continue;
+        }
         let d1 = ((p.pos[0] - OPTIMA[0].0).powi(2) + (p.pos[1] - OPTIMA[0].1).powi(2)).sqrt();
         let d2 = ((p.pos[0] - OPTIMA[1].0).powi(2) + (p.pos[1] - OPTIMA[1].1).powi(2)).sqrt();
-        if d1 < OPTIMUM_TOLERANCE { near_opt1 += 1; }
-        if d2 < OPTIMUM_TOLERANCE { near_opt2 += 1; }
+        if d1 < OPTIMUM_TOLERANCE {
+            near_opt1 += 1;
+        }
+        if d2 < OPTIMUM_TOLERANCE {
+            near_opt2 += 1;
+        }
     }
 
     println!("  Results:");
@@ -161,7 +182,10 @@ fn test_sample_mode() -> SampleResult {
     let temperature = 0.1;
     let steps = 1000;
 
-    println!("  Creating system with {} particles, T = {}", PARTICLE_COUNT, temperature);
+    println!(
+        "  Creating system with {} particles, T = {}",
+        PARTICLE_COUNT, temperature
+    );
     let mut system = ThermodynamicSystem::new(PARTICLE_COUNT, DIM, temperature);
 
     assert_eq!(system.mode(), ThermodynamicMode::Sample);
@@ -182,23 +206,38 @@ fn test_sample_mode() -> SampleResult {
     let mut positions: Vec<(f32, f32)> = Vec::new();
 
     for p in &particles {
-        if p.pos[0].is_nan() { continue; }
+        if p.pos[0].is_nan() {
+            continue;
+        }
         positions.push((p.pos[0], p.pos[1]));
         let d1 = ((p.pos[0] - OPTIMA[0].0).powi(2) + (p.pos[1] - OPTIMA[0].1).powi(2)).sqrt();
         let d2 = ((p.pos[0] - OPTIMA[1].0).powi(2) + (p.pos[1] - OPTIMA[1].1).powi(2)).sqrt();
-        if d1 < OPTIMUM_TOLERANCE * 2.0 { near_opt1 += 1; }
-        if d2 < OPTIMUM_TOLERANCE * 2.0 { near_opt2 += 1; }
+        if d1 < OPTIMUM_TOLERANCE * 2.0 {
+            near_opt1 += 1;
+        }
+        if d2 < OPTIMUM_TOLERANCE * 2.0 {
+            near_opt2 += 1;
+        }
     }
 
     // Compute spread (standard deviation of positions)
     let mean_x = positions.iter().map(|p| p.0).sum::<f32>() / positions.len() as f32;
     let mean_y = positions.iter().map(|p| p.1).sum::<f32>() / positions.len() as f32;
-    let var_x = positions.iter().map(|p| (p.0 - mean_x).powi(2)).sum::<f32>() / positions.len() as f32;
-    let var_y = positions.iter().map(|p| (p.1 - mean_y).powi(2)).sum::<f32>() / positions.len() as f32;
+    let var_x = positions
+        .iter()
+        .map(|p| (p.0 - mean_x).powi(2))
+        .sum::<f32>()
+        / positions.len() as f32;
+    let var_y = positions
+        .iter()
+        .map(|p| (p.1 - mean_y).powi(2))
+        .sum::<f32>()
+        / positions.len() as f32;
     let spread = (var_x + var_y).sqrt();
 
     // Check energies
-    let energies: Vec<f32> = particles.iter()
+    let energies: Vec<f32> = particles
+        .iter()
         .filter(|p| !p.energy.is_nan())
         .map(|p| p.energy)
         .collect();
@@ -208,12 +247,26 @@ fn test_sample_mode() -> SampleResult {
     let found_both = near_opt1 > PARTICLE_COUNT / 10 && near_opt2 > PARTICLE_COUNT / 10;
 
     println!("  Results:");
-    println!("    Near optimum 1 (1.5, 2.0):   {} particles ({:.1}%)", near_opt1, near_opt1 as f32 / PARTICLE_COUNT as f32 * 100.0);
-    println!("    Near optimum 2 (-1.5, -2.0): {} particles ({:.1}%)", near_opt2, near_opt2 as f32 / PARTICLE_COUNT as f32 * 100.0);
-    println!("    Found both optima: {}", if found_both { "YES" } else { "NO" });
+    println!(
+        "    Near optimum 1 (1.5, 2.0):   {} particles ({:.1}%)",
+        near_opt1,
+        near_opt1 as f32 / PARTICLE_COUNT as f32 * 100.0
+    );
+    println!(
+        "    Near optimum 2 (-1.5, -2.0): {} particles ({:.1}%)",
+        near_opt2,
+        near_opt2 as f32 / PARTICLE_COUNT as f32 * 100.0
+    );
+    println!(
+        "    Found both optima: {}",
+        if found_both { "YES" } else { "NO" }
+    );
     println!("    Position spread (σ): {:.3}", spread);
     println!("    Mean energy: {:.4}", mean_energy);
-    println!("    Low energy (<0.5): {:.1}%", low_energy as f32 / energies.len() as f32 * 100.0);
+    println!(
+        "    Low energy (<0.5): {:.1}%",
+        low_energy as f32 / energies.len() as f32 * 100.0
+    );
 
     // Pass criteria: found both optima AND has reasonable spread (not collapsed)
     let passed = found_both && spread > 0.5;
@@ -241,7 +294,10 @@ fn test_entropy_mode() -> EntropyResult {
     let warmup_steps = 100;
     let collection_steps = 500;
 
-    println!("  Creating system with {} particles, T = {}", PARTICLE_COUNT, temperature);
+    println!(
+        "  Creating system with {} particles, T = {}",
+        PARTICLE_COUNT, temperature
+    );
     let mut system = ThermodynamicSystem::new(PARTICLE_COUNT, DIM, temperature);
 
     assert_eq!(system.mode(), ThermodynamicMode::Entropy);
@@ -263,7 +319,11 @@ fn test_entropy_mode() -> EntropyResult {
         all_entropy.extend(entropy);
     }
     let elapsed = start.elapsed();
-    println!("  Collected {} entropy values in {:?}", all_entropy.len(), elapsed);
+    println!(
+        "  Collected {} entropy values in {:?}",
+        all_entropy.len(),
+        elapsed
+    );
 
     if all_entropy.is_empty() {
         println!("  ERROR: No entropy collected!");
@@ -292,7 +352,8 @@ fn test_entropy_mode() -> EntropyResult {
     }
     let total_nibbles = all_entropy.len() * 8;
     let expected_per_nibble = total_nibbles as f64 / 16.0;
-    let chi_squared: f64 = nibble_counts.iter()
+    let chi_squared: f64 = nibble_counts
+        .iter()
         .map(|&c| {
             let diff = c as f64 - expected_per_nibble;
             diff * diff / expected_per_nibble
@@ -314,8 +375,14 @@ fn test_entropy_mode() -> EntropyResult {
     let n = total_bits as f64;
     let pi = bit_balance as f64;
     let expected_runs = 2.0 * n * pi * (1.0 - pi) + 1.0;
-    let std_runs = (2.0 * n * pi * (1.0 - pi) * (2.0 * pi * (1.0 - pi) - 1.0 / n)).abs().sqrt();
-    let runs_z = if std_runs > 0.0 { ((runs as f64 - expected_runs) / std_runs).abs() } else { 0.0 };
+    let std_runs = (2.0 * n * pi * (1.0 - pi) * (2.0 * pi * (1.0 - pi) - 1.0 / n))
+        .abs()
+        .sqrt();
+    let runs_z = if std_runs > 0.0 {
+        ((runs as f64 - expected_runs) / std_runs).abs()
+    } else {
+        0.0
+    };
 
     // Test 4: Byte distribution chi-squared
     let mut byte_counts = [0u64; 256];
@@ -327,7 +394,8 @@ fn test_entropy_mode() -> EntropyResult {
     }
     let total_bytes = all_entropy.len() * 4;
     let expected_per_byte = total_bytes as f64 / 256.0;
-    let byte_chi: f64 = byte_counts.iter()
+    let byte_chi: f64 = byte_counts
+        .iter()
         .map(|&c| {
             let diff = c as f64 - expected_per_byte;
             diff * diff / expected_per_byte
@@ -335,21 +403,42 @@ fn test_entropy_mode() -> EntropyResult {
         .sum();
 
     println!("  Statistical Tests:");
-    println!("    Bit balance:     {:.4} (ideal: 0.5000, deviation: {:.4})", bit_balance, bit_balance_deviation);
-    println!("    Nibble χ²:       {:.2} (15 df, critical: 25.0)", chi_squared);
+    println!(
+        "    Bit balance:     {:.4} (ideal: 0.5000, deviation: {:.4})",
+        bit_balance, bit_balance_deviation
+    );
+    println!(
+        "    Nibble χ²:       {:.2} (15 df, critical: 25.0)",
+        chi_squared
+    );
     println!("    Runs test |z|:   {:.2} (critical: 2.58)", runs_z);
-    println!("    Byte χ²:         {:.2} (255 df, critical: 310)", byte_chi);
+    println!(
+        "    Byte χ²:         {:.2} (255 df, critical: 310)",
+        byte_chi
+    );
 
     // Pass criteria
     let bit_ok = bit_balance_deviation < 0.02;
-    let nibble_ok = chi_squared < 30.0;  // Slightly relaxed
-    let runs_ok = runs_z < 3.0;          // Slightly relaxed
-    let byte_ok = byte_chi < 350.0;      // Slightly relaxed
+    let nibble_ok = chi_squared < 30.0; // Slightly relaxed
+    let runs_ok = runs_z < 3.0; // Slightly relaxed
+    let byte_ok = byte_chi < 350.0; // Slightly relaxed
 
-    println!("    Bit balance:   {}", if bit_ok { "PASS" } else { "FAIL" });
-    println!("    Nibble dist:   {}", if nibble_ok { "PASS" } else { "FAIL" });
-    println!("    Runs test:     {}", if runs_ok { "PASS" } else { "FAIL" });
-    println!("    Byte dist:     {}", if byte_ok { "PASS" } else { "FAIL" });
+    println!(
+        "    Bit balance:   {}",
+        if bit_ok { "PASS" } else { "FAIL" }
+    );
+    println!(
+        "    Nibble dist:   {}",
+        if nibble_ok { "PASS" } else { "FAIL" }
+    );
+    println!(
+        "    Runs test:     {}",
+        if runs_ok { "PASS" } else { "FAIL" }
+    );
+    println!(
+        "    Byte dist:     {}",
+        if byte_ok { "PASS" } else { "FAIL" }
+    );
 
     let passed = bit_ok && nibble_ok && runs_ok && byte_ok;
     println!("  Status: {}", if passed { "PASS ✓" } else { "FAIL ✗" });

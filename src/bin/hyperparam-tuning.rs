@@ -6,8 +6,8 @@
 //! We simulate an ML training process and use particles to explore the
 //! hyperparameter space to find optimal settings.
 
-use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 use std::time::Instant;
+use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 
 // Simulated ML training: returns validation loss given hyperparameters
 // This models a realistic hyperparameter landscape with:
@@ -20,8 +20,8 @@ use std::time::Instant;
 
 fn simulate_training(log_lr: f32, l2_reg: f32, dropout: f32, log_hidden: f32) -> f32 {
     // Transform to actual values
-    let lr = 10.0f32.powf(log_lr);  // log_lr in [-5, 0] -> lr in [1e-5, 1]
-    let hidden = 10.0f32.powf(log_hidden).round() as i32;  // 10-1000
+    let lr = 10.0f32.powf(log_lr); // log_lr in [-5, 0] -> lr in [1e-5, 1]
+    let hidden = 10.0f32.powf(log_hidden).round() as i32; // 10-1000
 
     // Simulate training loss as a function of hyperparameters
     // This models realistic behavior:
@@ -29,7 +29,7 @@ fn simulate_training(log_lr: f32, l2_reg: f32, dropout: f32, log_hidden: f32) ->
     // 1. Learning rate: optimal around 1e-3, too high causes divergence
     let lr_optimal: f32 = 0.001;
     let lr_penalty = if lr > 0.1 {
-        10.0 * (lr - 0.1)  // Divergence
+        10.0 * (lr - 0.1) // Divergence
     } else {
         ((lr.ln() - lr_optimal.ln()) / 2.0).powi(2)
     };
@@ -37,7 +37,7 @@ fn simulate_training(log_lr: f32, l2_reg: f32, dropout: f32, log_hidden: f32) ->
     // 2. L2 regularization: optimal around 1e-4, too high = underfitting
     let l2_optimal: f32 = 0.0001;
     let l2_penalty = if l2_reg > 0.01 {
-        5.0 * (l2_reg - 0.01)  // Heavy underfitting
+        5.0 * (l2_reg - 0.01) // Heavy underfitting
     } else {
         ((l2_reg + 1e-6).ln() - l2_optimal.ln()).abs() * 0.1
     };
@@ -50,9 +50,9 @@ fn simulate_training(log_lr: f32, l2_reg: f32, dropout: f32, log_hidden: f32) ->
     let hidden_f = hidden as f32;
     let hidden_optimal = 200.0;
     let hidden_penalty = if hidden_f < 32.0 {
-        (32.0 - hidden_f) * 0.01  // Too small
+        (32.0 - hidden_f) * 0.01 // Too small
     } else if hidden_f > 500.0 {
-        (hidden_f - 500.0) * 0.0001  // Diminishing returns
+        (hidden_f - 500.0) * 0.0001 // Diminishing returns
     } else {
         ((hidden_f - hidden_optimal) / hidden_optimal).powi(2) * 0.5
     };
@@ -61,7 +61,7 @@ fn simulate_training(log_lr: f32, l2_reg: f32, dropout: f32, log_hidden: f32) ->
     let interaction = lr * l2_reg * 10.0 + dropout * (1.0 - lr.ln().abs() * 0.1);
 
     // Base validation loss (simulating actual training)
-    let base_loss = 0.1;  // Best achievable
+    let base_loss = 0.1; // Best achievable
 
     base_loss + lr_penalty + l2_penalty + dropout_penalty + hidden_penalty + interaction.abs() * 0.1
 }
@@ -71,34 +71,51 @@ fn pos_to_hyperparams(pos: &[f32]) -> (f32, f32, f32, f32) {
     // pos[0]: log_lr in [-5, 0]
     let log_lr = pos[0].clamp(-5.0, 0.0);
     // pos[1]: l2_reg in [0, 0.1]
-    let l2_reg = (pos[1].clamp(-3.0, 3.0) + 3.0) / 60.0;  // Map [-3,3] to [0, 0.1]
+    let l2_reg = (pos[1].clamp(-3.0, 3.0) + 3.0) / 60.0; // Map [-3,3] to [0, 0.1]
     // pos[2]: dropout in [0, 0.8]
-    let dropout = (pos[2].clamp(-2.0, 2.0) + 2.0) / 5.0;  // Map [-2,2] to [0, 0.8]
+    let dropout = (pos[2].clamp(-2.0, 2.0) + 2.0) / 5.0; // Map [-2,2] to [0, 0.8]
     // pos[3]: log_hidden in [1, 3] (10 to 1000)
     let log_hidden = pos[3].clamp(1.0, 3.0);
 
     (log_lr, l2_reg, dropout, log_hidden)
 }
 
-fn hyperparams_to_actual(log_lr: f32, l2_reg: f32, dropout: f32, log_hidden: f32) -> (f32, f32, f32, i32) {
+fn hyperparams_to_actual(
+    log_lr: f32,
+    l2_reg: f32,
+    dropout: f32,
+    log_hidden: f32,
+) -> (f32, f32, f32, i32) {
     let lr = 10.0f32.powf(log_lr);
     let hidden = 10.0f32.powf(log_hidden).round() as i32;
     (lr, l2_reg, dropout, hidden)
 }
 
 fn main() {
-    println!("{}",
-        "╔══════════════════════════════════════════════════════════════════════════╗");
-    println!("{}",
-        "║           HYPERPARAMETER TUNING DEMONSTRATION                           ║");
-    println!("{}",
-        "╠══════════════════════════════════════════════════════════════════════════╣");
-    println!("{}",
-        "║  Using thermodynamic particles to find optimal ML hyperparameters       ║");
-    println!("{}",
-        "║  Hyperparameters: learning_rate, L2_reg, dropout, hidden_size           ║");
-    println!("{}",
-        "╚══════════════════════════════════════════════════════════════════════════╝\n");
+    println!(
+        "{}",
+        "╔══════════════════════════════════════════════════════════════════════════╗"
+    );
+    println!(
+        "{}",
+        "║           HYPERPARAMETER TUNING DEMONSTRATION                           ║"
+    );
+    println!(
+        "{}",
+        "╠══════════════════════════════════════════════════════════════════════════╣"
+    );
+    println!(
+        "{}",
+        "║  Using thermodynamic particles to find optimal ML hyperparameters       ║"
+    );
+    println!(
+        "{}",
+        "║  Hyperparameters: learning_rate, L2_reg, dropout, hidden_size           ║"
+    );
+    println!(
+        "{}",
+        "╚══════════════════════════════════════════════════════════════════════════╝\n"
+    );
 
     // Compare different search strategies
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -126,26 +143,46 @@ fn main() {
     print_result(&thermo_long_result);
 
     // Summary
-    println!("\n{}",
-        "╔══════════════════════════════════════════════════════════════════════════╗");
-    println!("{}",
-        "║                              COMPARISON                                 ║");
-    println!("{}",
-        "╠══════════════════════════════════════════════════════════════════════════╣");
-    println!("{}",
-        "║  Method                     Best Loss    Time                           ║");
-    println!("{}",
-        "╠══════════════════════════════════════════════════════════════════════════╣");
-    println!("  Random Search (1000)        {:.6}    {:>8}ms",
-        random_result.loss, random_result.time_ms);
-    println!("  Grid Search (625)           {:.6}    {:>8}ms",
-        grid_result.loss, grid_result.time_ms);
-    println!("  Thermodynamic (1000 steps)  {:.6}    {:>8}ms",
-        thermo_result.loss, thermo_result.time_ms);
-    println!("  Thermodynamic (3000 steps)  {:.6}    {:>8}ms",
-        thermo_long_result.loss, thermo_long_result.time_ms);
-    println!("{}",
-        "╚══════════════════════════════════════════════════════════════════════════╝");
+    println!(
+        "\n{}",
+        "╔══════════════════════════════════════════════════════════════════════════╗"
+    );
+    println!(
+        "{}",
+        "║                              COMPARISON                                 ║"
+    );
+    println!(
+        "{}",
+        "╠══════════════════════════════════════════════════════════════════════════╣"
+    );
+    println!(
+        "{}",
+        "║  Method                     Best Loss    Time                           ║"
+    );
+    println!(
+        "{}",
+        "╠══════════════════════════════════════════════════════════════════════════╣"
+    );
+    println!(
+        "  Random Search (1000)        {:.6}    {:>8}ms",
+        random_result.loss, random_result.time_ms
+    );
+    println!(
+        "  Grid Search (625)           {:.6}    {:>8}ms",
+        grid_result.loss, grid_result.time_ms
+    );
+    println!(
+        "  Thermodynamic (1000 steps)  {:.6}    {:>8}ms",
+        thermo_result.loss, thermo_result.time_ms
+    );
+    println!(
+        "  Thermodynamic (3000 steps)  {:.6}    {:>8}ms",
+        thermo_long_result.loss, thermo_long_result.time_ms
+    );
+    println!(
+        "{}",
+        "╚══════════════════════════════════════════════════════════════════════════╝"
+    );
 }
 
 struct SearchResult {
@@ -210,10 +247,10 @@ fn grid_search() -> SearchResult {
     let mut best_params = (0.0, 0.0, 0.0, 0);
 
     // 5 points per dimension = 625 total
-    let lr_values = [-4.0, -3.0, -2.5, -2.0, -1.0];  // log scale
+    let lr_values = [-4.0, -3.0, -2.5, -2.0, -1.0]; // log scale
     let l2_values = [0.0, 0.0001, 0.001, 0.01, 0.1];
     let dropout_values = [0.0, 0.2, 0.4, 0.5, 0.6];
-    let hidden_values = [1.5, 2.0, 2.3, 2.5, 2.8];  // log scale
+    let hidden_values = [1.5, 2.0, 2.3, 2.5, 2.8]; // log scale
 
     for &log_lr in &lr_values {
         for &l2_reg in &l2_values {
@@ -247,9 +284,8 @@ fn thermodynamic_search(steps: usize) -> SearchResult {
     let particle_count = 500;
     let dim = 4;
 
-    let mut system = ThermodynamicSystem::with_loss_function(
-        particle_count, dim, 1.0, LossFunction::Sphere
-    );
+    let mut system =
+        ThermodynamicSystem::with_loss_function(particle_count, dim, 1.0, LossFunction::Sphere);
 
     // We can't use a custom loss in the shader, so we'll evaluate manually
     // and use the system for exploration with annealing

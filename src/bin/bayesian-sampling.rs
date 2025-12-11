@@ -6,8 +6,8 @@
 //! For a Gaussian mixture with known modes, we can verify the sampling is correct
 //! by checking that particle density matches the target distribution.
 
-use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 use std::collections::HashMap;
+use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 
 // Custom loss function for a 2D Gaussian mixture (3 modes)
 // This is implemented in the shader as the default 2D neural net loss
@@ -17,18 +17,30 @@ const HIST_BINS: usize = 50;
 const HIST_RANGE: f32 = 5.0;
 
 fn main() {
-    println!("{}",
-        "╔══════════════════════════════════════════════════════════════════════════╗");
-    println!("{}",
-        "║           BAYESIAN POSTERIOR SAMPLING DEMONSTRATION                     ║");
-    println!("{}",
-        "╠══════════════════════════════════════════════════════════════════════════╣");
-    println!("{}",
-        "║  Verifying that moderate-T particles sample from p(x) ∝ exp(-E(x)/T)    ║");
-    println!("{}",
-        "║  Using 2D neural net loss with two symmetric minima                     ║");
-    println!("{}",
-        "╚══════════════════════════════════════════════════════════════════════════╝\n");
+    println!(
+        "{}",
+        "╔══════════════════════════════════════════════════════════════════════════╗"
+    );
+    println!(
+        "{}",
+        "║           BAYESIAN POSTERIOR SAMPLING DEMONSTRATION                     ║"
+    );
+    println!(
+        "{}",
+        "╠══════════════════════════════════════════════════════════════════════════╣"
+    );
+    println!(
+        "{}",
+        "║  Verifying that moderate-T particles sample from p(x) ∝ exp(-E(x)/T)    ║"
+    );
+    println!(
+        "{}",
+        "║  Using 2D neural net loss with two symmetric minima                     ║"
+    );
+    println!(
+        "{}",
+        "╚══════════════════════════════════════════════════════════════════════════╝\n"
+    );
 
     // Run sampling at different temperatures
     let temperatures = [0.05, 0.1, 0.5, 1.0];
@@ -37,22 +49,38 @@ fn main() {
         sample_at_temperature(temp);
     }
 
-    println!("{}",
-        "╔══════════════════════════════════════════════════════════════════════════╗");
-    println!("{}",
-        "║                              KEY INSIGHTS                                ║");
-    println!("{}",
-        "╠══════════════════════════════════════════════════════════════════════════╣");
-    println!("{}",
-        "║  • Low T (0.05): Particles concentrate tightly at minima                ║");
-    println!("{}",
-        "║  • Medium T (0.1-0.5): Particles spread around modes proportionally     ║");
-    println!("{}",
-        "║  • High T (1.0): Broad exploration, nearly uniform sampling             ║");
-    println!("{}",
-        "║  • Particle density ∝ exp(-E/T) - true Bayesian posterior sampling!     ║");
-    println!("{}",
-        "╚══════════════════════════════════════════════════════════════════════════╝");
+    println!(
+        "{}",
+        "╔══════════════════════════════════════════════════════════════════════════╗"
+    );
+    println!(
+        "{}",
+        "║                              KEY INSIGHTS                                ║"
+    );
+    println!(
+        "{}",
+        "╠══════════════════════════════════════════════════════════════════════════╣"
+    );
+    println!(
+        "{}",
+        "║  • Low T (0.05): Particles concentrate tightly at minima                ║"
+    );
+    println!(
+        "{}",
+        "║  • Medium T (0.1-0.5): Particles spread around modes proportionally     ║"
+    );
+    println!(
+        "{}",
+        "║  • High T (1.0): Broad exploration, nearly uniform sampling             ║"
+    );
+    println!(
+        "{}",
+        "║  • Particle density ∝ exp(-E/T) - true Bayesian posterior sampling!     ║"
+    );
+    println!(
+        "{}",
+        "╚══════════════════════════════════════════════════════════════════════════╝"
+    );
 }
 
 fn sample_at_temperature(temperature: f32) {
@@ -128,7 +156,8 @@ fn sample_at_temperature(temperature: f32) {
             if hist[iy][ix] > max_count {
                 max_count = hist[iy][ix];
             }
-            if hist[iy][ix] > samples_x.len() / 100 {  // More than 1% of samples
+            if hist[iy][ix] > samples_x.len() / 100 {
+                // More than 1% of samples
                 let x = -HIST_RANGE + (ix as f32 + 0.5) * 2.0 * HIST_RANGE / HIST_BINS as f32;
                 let y = -HIST_RANGE + (iy as f32 + 0.5) * 2.0 * HIST_RANGE / HIST_BINS as f32;
                 peaks.push((x, y, hist[iy][ix]));
@@ -148,8 +177,13 @@ fn sample_at_temperature(temperature: f32) {
         if (x - last_x).abs() < 0.5 && (y - last_y).abs() < 0.5 {
             continue;
         }
-        println!("    Mode at ({:>6.2}, {:>6.2}): {:>6} samples ({:.1}%)",
-            x, y, count, *count as f32 / samples_x.len() as f32 * 100.0);
+        println!(
+            "    Mode at ({:>6.2}, {:>6.2}): {:>6} samples ({:.1}%)",
+            x,
+            y,
+            count,
+            *count as f32 / samples_x.len() as f32 * 100.0
+        );
         last_x = *x;
         last_y = *y;
         shown += 1;
@@ -173,7 +207,10 @@ fn sample_at_temperature(temperature: f32) {
 
     for iy in (0..HIST_BINS).rev() {
         if iy % 10 == 0 {
-            print!("{:>3} ", -HIST_RANGE as i32 + (HIST_BINS - iy) as i32 * 10 / HIST_BINS as i32);
+            print!(
+                "{:>3} ",
+                -HIST_RANGE as i32 + (HIST_BINS - iy) as i32 * 10 / HIST_BINS as i32
+            );
         } else {
             print!("    ");
         }
@@ -186,11 +223,18 @@ fn sample_at_temperature(temperature: f32) {
 
     // Verify Boltzmann distribution: log(density) ∝ -E/T
     println!("\n  Boltzmann Distribution Check:");
-    println!("    At T={}, particles should sample p(x) ∝ exp(-E(x)/T)", temperature);
+    println!(
+        "    At T={}, particles should sample p(x) ∝ exp(-E(x)/T)",
+        temperature
+    );
 
     // Bin energies and count
     let e_min = energies.iter().cloned().fold(f32::MAX, f32::min);
-    let e_max = energies.iter().cloned().fold(0.0f32, f32::max).min(e_min + 5.0);
+    let e_max = energies
+        .iter()
+        .cloned()
+        .fold(0.0f32, f32::max)
+        .min(e_min + 5.0);
     let e_range = e_max - e_min;
     let e_bins = 10;
     let mut e_hist = vec![0usize; e_bins];
@@ -203,14 +247,20 @@ fn sample_at_temperature(temperature: f32) {
     }
 
     println!("    Energy distribution:");
-    println!("    {:>8} {:>8} {:>8} {:>12}", "E_mid", "Count", "log(p)", "Theory");
+    println!(
+        "    {:>8} {:>8} {:>8} {:>12}",
+        "E_mid", "Count", "log(p)", "Theory"
+    );
     for i in 0..e_bins {
         let e_mid = e_min + (i as f32 + 0.5) * e_range / e_bins as f32;
         let count = e_hist[i];
         if count > 0 {
             let log_p = (count as f32).ln();
-            let theory = -e_mid / temperature;  // Should be proportional to this
-            println!("    {:>8.3} {:>8} {:>8.2} {:>12.2}", e_mid, count, log_p, theory);
+            let theory = -e_mid / temperature; // Should be proportional to this
+            println!(
+                "    {:>8.3} {:>8} {:>8.2} {:>12.2}",
+                e_mid, count, log_p, theory
+            );
         }
     }
     println!();

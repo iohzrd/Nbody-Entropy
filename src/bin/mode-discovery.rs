@@ -8,9 +8,9 @@
 //!
 //! Run with: cargo run --release --features gpu --bin mode-discovery
 
-use temper::expr::*;
-use temper::ThermodynamicSystem;
 use std::collections::HashMap;
+use temper::ThermodynamicSystem;
+use temper::expr::*;
 
 fn main() {
     println!("Multi-Modal Mode Discovery");
@@ -112,14 +112,20 @@ fn main() {
         if step % 1000 == 0 {
             let particles = hd_system.read_particles();
             let modes_4d = find_modes_4d(&particles);
-            println!("Step {:4}: T={:.3}, modes discovered: {}/16", step, temp, modes_4d);
+            println!(
+                "Step {:4}: T={:.3}, modes discovered: {}/16",
+                step, temp, modes_4d
+            );
         }
     }
 
     let final_particles = hd_system.read_particles();
     let final_modes = find_modes_4d(&final_particles);
 
-    println!("\nFinal: Discovered {}/16 modes of the 4D hypercube", final_modes);
+    println!(
+        "\nFinal: Discovered {}/16 modes of the 4D hypercube",
+        final_modes
+    );
     println!("\nConclusion:");
     println!("  - Gradient descent: converges to ONE mode");
     println!("  - Thermodynamic + SVGD: discovers MULTIPLE modes");
@@ -132,11 +138,18 @@ fn find_modes(particles: &[temper::ThermodynamicParticle], dim: usize) -> Vec<((
     let threshold = 0.5; // Consider particles within 0.5 as same mode
     let mut mode_counts: HashMap<(i32, i32), usize> = HashMap::new();
 
-    for p in particles.iter().filter(|p| !p.energy.is_nan() && p.energy < 10.0) {
+    for p in particles
+        .iter()
+        .filter(|p| !p.energy.is_nan() && p.energy < 10.0)
+    {
         // Round to grid
         let key = (
             (p.pos[0] / threshold).round() as i32,
-            if dim > 1 { (p.pos[1] / threshold).round() as i32 } else { 0 }
+            if dim > 1 {
+                (p.pos[1] / threshold).round() as i32
+            } else {
+                0
+            },
         );
         *mode_counts.entry(key).or_insert(0) += 1;
     }
@@ -144,7 +157,8 @@ fn find_modes(particles: &[temper::ThermodynamicParticle], dim: usize) -> Vec<((
     // Cluster nearby grid cells
     let mut modes: Vec<((f32, f32), usize)> = Vec::new();
     for ((gx, gy), count) in mode_counts {
-        if count >= 3 { // At least 3 particles to count as a mode
+        if count >= 3 {
+            // At least 3 particles to count as a mode
             let x = gx as f32 * threshold;
             let y = gy as f32 * threshold;
             modes.push(((x, y), count));
@@ -161,9 +175,14 @@ fn find_modes_4d(particles: &[temper::ThermodynamicParticle]) -> usize {
     let threshold = 0.5;
     let mut found = std::collections::HashSet::new();
 
-    for p in particles.iter().filter(|p| !p.energy.is_nan() && p.energy < 1.0) {
+    for p in particles
+        .iter()
+        .filter(|p| !p.energy.is_nan() && p.energy < 1.0)
+    {
         // Check which corner this is near
-        let signs: Vec<i32> = (0..4).map(|i| if p.pos[i] > 0.0 { 1 } else { -1 }).collect();
+        let signs: Vec<i32> = (0..4)
+            .map(|i| if p.pos[i] > 0.0 { 1 } else { -1 })
+            .collect();
 
         // Check if actually near a corner
         let near_corner = (0..4).all(|i| (p.pos[i].abs() - 1.0).abs() < threshold);

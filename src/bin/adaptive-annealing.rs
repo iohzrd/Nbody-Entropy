@@ -12,8 +12,8 @@
 
 use iced::keyboard;
 use iced::mouse;
-use iced::widget::{canvas, container, Column, Row, Text};
-use iced::{event, Color, Element, Event, Length, Point, Rectangle, Renderer, Subscription, Theme};
+use iced::widget::{Column, Row, Text, canvas, container};
+use iced::{Color, Element, Event, Length, Point, Rectangle, Renderer, Subscription, Theme, event};
 use temper::thermodynamic::{LossFunction, ThermodynamicParticle, ThermodynamicSystem};
 
 const PARTICLE_COUNT: usize = 500;
@@ -61,8 +61,8 @@ impl TestFunction {
 
     fn convergence_threshold(&self) -> f32 {
         match self {
-            Self::Rastrigin => 0.1,   // Near zero is converged
-            Self::Schwefel => 10.0,   // Near global min (~0) is converged
+            Self::Rastrigin => 0.1, // Near zero is converged
+            Self::Schwefel => 10.0, // Near global min (~0) is converged
         }
     }
 
@@ -133,7 +133,7 @@ impl AdaptiveScheduler {
         // Key improvement #1: Convergence detection
         // If we're already at low energy, cool aggressively to lock in
         if min_energy < self.convergence_threshold {
-            self.temperature *= self.base_cooling_rate.powf(2.0);  // 2x faster cooling
+            self.temperature *= self.base_cooling_rate.powf(2.0); // 2x faster cooling
             self.stall_count = 0;
             self.temperature = self.temperature.max(self.t_end);
             return self.temperature;
@@ -156,10 +156,17 @@ impl AdaptiveScheduler {
         };
 
         // Key improvement #3: Different thresholds based on energy level
-        let stall_threshold = if min_energy > 100.0 { 0.001 }  // High energy: very sensitive
-                             else if min_energy > 10.0 { 0.005 }
-                             else if min_energy > 1.0 { 0.01 }
-                             else { 0.05 };  // Low energy: less sensitive (allow slow convergence)
+        let stall_threshold = if min_energy > 100.0 {
+            0.001
+        }
+        // High energy: very sensitive
+        else if min_energy > 10.0 {
+            0.005
+        } else if min_energy > 1.0 {
+            0.01
+        } else {
+            0.05
+        }; // Low energy: less sensitive (allow slow convergence)
 
         if improvement_rate < stall_threshold && self.temperature > self.t_end * 10.0 {
             self.stall_count += 1;
@@ -215,7 +222,10 @@ impl RunState {
     fn new(func: TestFunction) -> Self {
         let t_start = func.t_start();
         let mut system = ThermodynamicSystem::with_loss_function(
-            PARTICLE_COUNT, DIM, t_start, func.loss_function()
+            PARTICLE_COUNT,
+            DIM,
+            t_start,
+            func.loss_function(),
         );
         system.set_repulsion_samples(64);
         let particles = system.read_particles();
@@ -237,23 +247,36 @@ impl RunState {
         self.system.set_temperature(temperature);
 
         let t_start = func.t_start();
-        let repulsion = if temperature > t_start * 0.2 { 64 }
-                       else if temperature > t_start * 0.02 { 32 }
-                       else { 0 };
+        let repulsion = if temperature > t_start * 0.2 {
+            64
+        } else if temperature > t_start * 0.02 {
+            32
+        } else {
+            0
+        };
         self.system.set_repulsion_samples(repulsion);
 
         // Adaptive dt based on function and temperature
         let dt = match func {
             TestFunction::Rastrigin => {
-                if temperature > 0.1 { 0.01 }
-                else if temperature > 0.01 { 0.005 }
-                else { 0.002 }
+                if temperature > 0.1 {
+                    0.01
+                } else if temperature > 0.01 {
+                    0.005
+                } else {
+                    0.002
+                }
             }
             TestFunction::Schwefel => {
-                if temperature > 100.0 { 1.0 }
-                else if temperature > 10.0 { 0.5 }
-                else if temperature > 1.0 { 0.2 }
-                else { 0.1 }
+                if temperature > 100.0 {
+                    1.0
+                } else if temperature > 10.0 {
+                    0.5
+                } else if temperature > 1.0 {
+                    0.2
+                } else {
+                    0.1
+                }
             }
         };
         self.system.set_dt(dt);
@@ -284,7 +307,10 @@ impl RunState {
     fn reset(&mut self, func: TestFunction) {
         let t_start = func.t_start();
         self.system = ThermodynamicSystem::with_loss_function(
-            PARTICLE_COUNT, DIM, t_start, func.loss_function()
+            PARTICLE_COUNT,
+            DIM,
+            t_start,
+            func.loss_function(),
         );
         self.system.set_repulsion_samples(64);
         self.particles = self.system.read_particles();
@@ -385,46 +411,56 @@ fn update(app: &mut App, message: Message) {
             app.cache_fixed.clear();
             app.cache_adaptive.clear();
         }
-        Message::Event(Event::Keyboard(keyboard::Event::KeyPressed { key, .. })) => {
-            match key {
-                keyboard::Key::Named(keyboard::key::Named::Space) => app.paused = !app.paused,
-                keyboard::Key::Character(c) => match c.as_str() {
-                    "r" => app.reset(),
-                    "s" | "S" => app.switch_function(),
-                    "+" | "=" => app.speed = (app.speed * 2).min(50),
-                    "-" => app.speed = (app.speed / 2).max(1),
-                    _ => {}
-                }
+        Message::Event(Event::Keyboard(keyboard::Event::KeyPressed { key, .. })) => match key {
+            keyboard::Key::Named(keyboard::key::Named::Space) => app.paused = !app.paused,
+            keyboard::Key::Character(c) => match c.as_str() {
+                "r" => app.reset(),
+                "s" | "S" => app.switch_function(),
+                "+" | "=" => app.speed = (app.speed * 2).min(50),
+                "-" => app.speed = (app.speed / 2).max(1),
                 _ => {}
-            }
-        }
+            },
+            _ => {}
+        },
         Message::Event(_) => {}
     }
 }
 
 fn view(app: &App) -> Element<'_, Message> {
     let progress = (app.step_count as f32 / TOTAL_STEPS as f32 * 100.0).min(100.0);
-    let status = if app.paused { "PAUSED" }
-                 else if app.step_count >= TOTAL_STEPS { "DONE" }
-                 else { "RUNNING" };
+    let status = if app.paused {
+        "PAUSED"
+    } else if app.step_count >= TOTAL_STEPS {
+        "DONE"
+    } else {
+        "RUNNING"
+    };
 
     let (gx, gy) = app.func.global_opt();
     let info = format!(
         "{} | Step: {}/{} ({:.0}%) | {} | Speed: {}x | Reheats: {} | Global: ({:.0},{:.0})",
-        app.func.name(), app.step_count, TOTAL_STEPS, progress, status, app.speed,
-        app.adaptive_scheduler.reheat_count, gx, gy
+        app.func.name(),
+        app.step_count,
+        TOTAL_STEPS,
+        progress,
+        status,
+        app.speed,
+        app.adaptive_scheduler.reheat_count,
+        gx,
+        gy
     );
 
     let fixed_stats = format!(
         "FIXED: T={:.4} | Min={:.2} | Best=({:.1},{:.1})",
-        app.fixed.temperature, app.fixed.min_energy,
-        app.fixed.best_pos[0], app.fixed.best_pos[1]
+        app.fixed.temperature, app.fixed.min_energy, app.fixed.best_pos[0], app.fixed.best_pos[1]
     );
 
     let adaptive_stats = format!(
         "ADAPTIVE: T={:.4} | Min={:.2} | Best=({:.1},{:.1})",
-        app.adaptive.temperature, app.adaptive.min_energy,
-        app.adaptive.best_pos[0], app.adaptive.best_pos[1]
+        app.adaptive.temperature,
+        app.adaptive.min_energy,
+        app.adaptive.best_pos[0],
+        app.adaptive.best_pos[1]
     );
 
     let winner = if app.step_count >= TOTAL_STEPS {
@@ -446,7 +482,7 @@ fn view(app: &App) -> Element<'_, Message> {
             Row::new()
                 .push(Text::new(fixed_stats).size(14))
                 .push(Text::new("  |  ").size(14))
-                .push(Text::new(adaptive_stats).size(14))
+                .push(Text::new(adaptive_stats).size(14)),
         )
         .push(Text::new(winner).size(14))
         .push(
@@ -455,20 +491,20 @@ fn view(app: &App) -> Element<'_, Message> {
                     container(
                         canvas(FixedView { app })
                             .width(Length::Fill)
-                            .height(Length::Fill)
+                            .height(Length::Fill),
                     )
                     .width(Length::FillPortion(1))
-                    .height(Length::Fill)
+                    .height(Length::Fill),
                 )
                 .push(
                     container(
                         canvas(AdaptiveView { app })
                             .width(Length::Fill)
-                            .height(Length::Fill)
+                            .height(Length::Fill),
                     )
                     .width(Length::FillPortion(1))
-                    .height(Length::Fill)
-                )
+                    .height(Length::Fill),
+                ),
         )
         .into()
 }
@@ -534,10 +570,7 @@ fn draw_panel(
             let cell_w = size.width / resolution as f32 + 1.0;
             let cell_h = size.height / resolution as f32 + 1.0;
 
-            let rect = canvas::Path::rectangle(
-                Point::new(px, py),
-                iced::Size::new(cell_w, cell_h),
-            );
+            let rect = canvas::Path::rectangle(Point::new(px, py), iced::Size::new(cell_w, cell_h));
             frame.fill(&rect, color);
         }
     }
@@ -547,11 +580,18 @@ fn draw_panel(
     let ox = ((gx - domain_min) / domain_size) * size.width;
     let oy = ((gy - domain_min) / domain_size) * size.height;
     let target = canvas::Path::circle(Point::new(ox, oy), 10.0);
-    frame.stroke(&target, canvas::Stroke::default().with_color(Color::from_rgb(0.0, 1.0, 0.0)).with_width(2.0));
+    frame.stroke(
+        &target,
+        canvas::Stroke::default()
+            .with_color(Color::from_rgb(0.0, 1.0, 0.0))
+            .with_width(2.0),
+    );
 
     // Particles
     for p in particles {
-        if p.pos[0].is_nan() || p.pos[1].is_nan() { continue; }
+        if p.pos[0].is_nan() || p.pos[1].is_nan() {
+            continue;
+        }
         let x = ((p.pos[0] - domain_min) / domain_size) * size.width;
         let y = ((p.pos[1] - domain_min) / domain_size) * size.height;
 
@@ -570,7 +610,12 @@ fn draw_panel(
     let bx = ((best_pos[0] - domain_min) / domain_size) * size.width;
     let by = ((best_pos[1] - domain_min) / domain_size) * size.height;
     let best = canvas::Path::circle(Point::new(bx, by), 6.0);
-    frame.stroke(&best, canvas::Stroke::default().with_color(Color::from_rgb(1.0, 1.0, 0.0)).with_width(2.0));
+    frame.stroke(
+        &best,
+        canvas::Stroke::default()
+            .with_color(Color::from_rgb(1.0, 1.0, 0.0))
+            .with_width(2.0),
+    );
 
     // Temperature bar
     let bar_width = 15.0;
@@ -578,7 +623,10 @@ fn draw_panel(
     let bar_x = 10.0;
     let bar_y = 25.0;
 
-    let bg = canvas::Path::rectangle(Point::new(bar_x, bar_y), iced::Size::new(bar_width, bar_height));
+    let bg = canvas::Path::rectangle(
+        Point::new(bar_x, bar_y),
+        iced::Size::new(bar_width, bar_height),
+    );
     frame.fill(&bg, Color::from_rgba(0.0, 0.0, 0.0, 0.5));
 
     let log_t = (temperature.ln() - t_end.ln()) / (t_start.ln() - t_end.ln());
@@ -597,7 +645,10 @@ fn draw_panel(
         let graph_x = size.width - graph_width - 10.0;
         let graph_y = size.height - graph_height - 10.0;
 
-        let graph_bg = canvas::Path::rectangle(Point::new(graph_x, graph_y), iced::Size::new(graph_width, graph_height));
+        let graph_bg = canvas::Path::rectangle(
+            Point::new(graph_x, graph_y),
+            iced::Size::new(graph_width, graph_height),
+        );
         frame.fill(&graph_bg, Color::from_rgba(0.0, 0.0, 0.0, 0.7));
 
         let len = energy_history.len();
@@ -609,15 +660,24 @@ fn draw_panel(
             let x1 = graph_x + ((i - 1) as f32 / len as f32) * graph_width;
             let x2 = graph_x + (i as f32 / len as f32) * graph_width;
 
-            let e1 = energy_history[i-1].max(min_e);
+            let e1 = energy_history[i - 1].max(min_e);
             let e2 = energy_history[i].max(min_e);
 
-            let y1 = graph_y + graph_height - ((e1.ln() - min_e.ln()) / (max_e.ln() - min_e.ln())).clamp(0.0, 1.0) * graph_height;
-            let y2 = graph_y + graph_height - ((e2.ln() - min_e.ln()) / (max_e.ln() - min_e.ln())).clamp(0.0, 1.0) * graph_height;
+            let y1 = graph_y + graph_height
+                - ((e1.ln() - min_e.ln()) / (max_e.ln() - min_e.ln())).clamp(0.0, 1.0)
+                    * graph_height;
+            let y2 = graph_y + graph_height
+                - ((e2.ln() - min_e.ln()) / (max_e.ln() - min_e.ln())).clamp(0.0, 1.0)
+                    * graph_height;
 
             if !y1.is_nan() && !y2.is_nan() {
                 let line = canvas::Path::line(Point::new(x1, y1), Point::new(x2, y2));
-                frame.stroke(&line, canvas::Stroke::default().with_color(Color::from_rgb(0.0, 1.0, 1.0)).with_width(1.5));
+                frame.stroke(
+                    &line,
+                    canvas::Stroke::default()
+                        .with_color(Color::from_rgb(0.0, 1.0, 1.0))
+                        .with_width(1.5),
+                );
             }
         }
 
@@ -627,14 +687,19 @@ fn draw_panel(
                 let x1 = graph_x + ((i - 1) as f32 / len as f32) * graph_width;
                 let x2 = graph_x + (i as f32 / len as f32) * graph_width;
 
-                let t1 = (temp_history[i-1].ln() - t_end.ln()) / (t_start.ln() - t_end.ln());
+                let t1 = (temp_history[i - 1].ln() - t_end.ln()) / (t_start.ln() - t_end.ln());
                 let t2 = (temp_history[i].ln() - t_end.ln()) / (t_start.ln() - t_end.ln());
 
                 let y1 = graph_y + graph_height - t1.clamp(0.0, 1.0) * graph_height;
                 let y2 = graph_y + graph_height - t2.clamp(0.0, 1.0) * graph_height;
 
                 let line = canvas::Path::line(Point::new(x1, y1), Point::new(x2, y2));
-                frame.stroke(&line, canvas::Stroke::default().with_color(Color::from_rgb(1.0, 0.5, 0.0)).with_width(1.0));
+                frame.stroke(
+                    &line,
+                    canvas::Stroke::default()
+                        .with_color(Color::from_rgb(1.0, 0.5, 0.0))
+                        .with_width(1.0),
+                );
             }
         }
     }
@@ -679,19 +744,22 @@ impl canvas::Program<Message> for AdaptiveView<'_> {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry<Renderer>> {
-        let geo = self.app.cache_adaptive.draw(renderer, bounds.size(), |frame| {
-            draw_panel(
-                frame,
-                bounds.size(),
-                &self.app.adaptive.particles,
-                self.app.adaptive.best_pos,
-                self.app.adaptive.temperature,
-                &self.app.adaptive.energy_history,
-                &self.app.adaptive.temp_history,
-                self.app.func,
-                true,
-            );
-        });
+        let geo = self
+            .app
+            .cache_adaptive
+            .draw(renderer, bounds.size(), |frame| {
+                draw_panel(
+                    frame,
+                    bounds.size(),
+                    &self.app.adaptive.particles,
+                    self.app.adaptive.best_pos,
+                    self.app.adaptive.temperature,
+                    &self.app.adaptive.energy_history,
+                    &self.app.adaptive.temp_history,
+                    self.app.func,
+                    true,
+                );
+            });
         vec![geo]
     }
 }

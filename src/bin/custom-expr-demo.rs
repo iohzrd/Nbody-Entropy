@@ -5,8 +5,8 @@
 //!
 //! Run with: cargo run --release --features gpu --bin custom-expr-demo
 
-use temper::expr::*;
 use temper::ThermodynamicSystem;
+use temper::expr::*;
 
 fn main() {
     println!("Custom Expression Loss Function Demo");
@@ -15,8 +15,7 @@ fn main() {
     // Define the Griewank function using the expression DSL:
     // f(x) = 1 + sum(x_i^2 / 4000) - prod(cos(x_i / sqrt(i+1)))
     // Global minimum: f(0, 0, ..., 0) = 0
-    let griewank = const_(1.0)
-        + sum_dims(|x, _| x.powi(2) / 4000.0)
+    let griewank = const_(1.0) + sum_dims(|x, _| x.powi(2) / 4000.0)
         - prod_dims(|x, i| cos(x / sqrt(i + 1.0)));
 
     println!("Testing Griewank function (custom expression)");
@@ -37,7 +36,10 @@ fn main() {
     let mut system = ThermodynamicSystem::with_expr(particle_count, dim, 2.0, griewank);
     system.set_repulsion_samples(64);
 
-    println!("Running optimization with {} particles in {}D...", particle_count, dim);
+    println!(
+        "Running optimization with {} particles in {}D...",
+        particle_count, dim
+    );
     println!();
 
     // Simulated annealing
@@ -51,7 +53,13 @@ fn main() {
         system.set_temperature(temp);
 
         // Adaptive time step
-        let dt = if temp > 0.1 { 0.01 } else if temp > 0.01 { 0.005 } else { 0.002 };
+        let dt = if temp > 0.1 {
+            0.01
+        } else if temp > 0.01 {
+            0.005
+        } else {
+            0.002
+        };
         system.set_dt(dt);
 
         system.step();
@@ -69,7 +77,8 @@ fn main() {
                 .iter()
                 .filter(|p| !p.energy.is_nan())
                 .map(|p| p.energy)
-                .sum::<f32>() / particles.len() as f32;
+                .sum::<f32>()
+                / particles.len() as f32;
 
             println!(
                 "Step {:4}: T={:.4}  min={:.4}  mean={:.4}",
@@ -92,12 +101,17 @@ fn main() {
     println!("Best energy: {:.6}", best.energy);
     print!("Best position: [");
     for i in 0..dim {
-        if i > 0 { print!(", "); }
+        if i > 0 {
+            print!(", ");
+        }
         print!("{:.4}", best.pos[i]);
     }
     println!("]");
 
-    let distance_from_origin: f32 = (0..dim).map(|i| best.pos[i] * best.pos[i]).sum::<f32>().sqrt();
+    let distance_from_origin: f32 = (0..dim)
+        .map(|i| best.pos[i] * best.pos[i])
+        .sum::<f32>()
+        .sqrt();
     println!("Distance from origin: {:.6}", distance_from_origin);
 
     // Test with Levy function too
@@ -113,7 +127,13 @@ fn main() {
         let progress = step as f32 / steps as f32;
         let temp = t_start * (t_end / t_start).powf(progress);
         system2.set_temperature(temp);
-        let dt = if temp > 0.1 { 0.01 } else if temp > 0.01 { 0.005 } else { 0.002 };
+        let dt = if temp > 0.1 {
+            0.01
+        } else if temp > 0.01 {
+            0.005
+        } else {
+            0.002
+        };
         system2.set_dt(dt);
         system2.step();
     }
@@ -128,12 +148,17 @@ fn main() {
     println!("Best energy: {:.6}", best2.energy);
     print!("Best position: [");
     for i in 0..dim {
-        if i > 0 { print!(", "); }
+        if i > 0 {
+            print!(", ");
+        }
         print!("{:.4}", best2.pos[i]);
     }
     println!("]");
 
-    let distance_from_ones: f32 = (0..dim).map(|i| (best2.pos[i] - 1.0).powi(2)).sum::<f32>().sqrt();
+    let distance_from_ones: f32 = (0..dim)
+        .map(|i| (best2.pos[i] - 1.0).powi(2))
+        .sum::<f32>()
+        .sqrt();
     println!("Distance from (1,1,1,1): {:.6}", distance_from_ones);
 
     println!("\nDemo complete!");

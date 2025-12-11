@@ -6,25 +6,37 @@
 //!
 //! This proves the system can train actual neural networks, not just toy functions.
 
-use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 use std::time::Instant;
+use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 
 const PARTICLE_COUNT: usize = 500;
 const DIM: usize = 9; // 2x2 + 2 + 2x1 + 1 = 9 parameters for our MLP
 
 fn main() {
-    println!("{}",
-        "╔══════════════════════════════════════════════════════════════════════════╗");
-    println!("{}",
-        "║           NEURAL NETWORK TRAINING BENCHMARK                              ║");
-    println!("{}",
-        "╠══════════════════════════════════════════════════════════════════════════╣");
-    println!("{}",
-        "║  Training real MLPs with thermodynamic particle optimization             ║");
-    println!("{}",
-        "║  Architecture: 2 inputs -> 2 hidden (tanh) -> 1 output (sigmoid)         ║");
-    println!("{}",
-        "╚══════════════════════════════════════════════════════════════════════════╝\n");
+    println!(
+        "{}",
+        "╔══════════════════════════════════════════════════════════════════════════╗"
+    );
+    println!(
+        "{}",
+        "║           NEURAL NETWORK TRAINING BENCHMARK                              ║"
+    );
+    println!(
+        "{}",
+        "╠══════════════════════════════════════════════════════════════════════════╣"
+    );
+    println!(
+        "{}",
+        "║  Training real MLPs with thermodynamic particle optimization             ║"
+    );
+    println!(
+        "{}",
+        "║  Architecture: 2 inputs -> 2 hidden (tanh) -> 1 output (sigmoid)         ║"
+    );
+    println!(
+        "{}",
+        "╚══════════════════════════════════════════════════════════════════════════╝\n"
+    );
 
     let mut all_passed = true;
 
@@ -43,23 +55,37 @@ fn main() {
     println!();
 
     // Summary
-    println!("{}",
-        "╔══════════════════════════════════════════════════════════════════════════╗");
-    println!("{}",
-        "║                              SUMMARY                                     ║");
-    println!("{}",
-        "╠══════════════════════════════════════════════════════════════════════════╣");
+    println!(
+        "{}",
+        "╔══════════════════════════════════════════════════════════════════════════╗"
+    );
+    println!(
+        "{}",
+        "║                              SUMMARY                                     ║"
+    );
+    println!(
+        "{}",
+        "╠══════════════════════════════════════════════════════════════════════════╣"
+    );
     if all_passed {
-        println!("{}",
-            "║  ✓ ALL NEURAL NETWORK TESTS PASSED                                      ║");
-        println!("{}",
-            "║  The thermodynamic system successfully trains real neural networks!      ║");
+        println!(
+            "{}",
+            "║  ✓ ALL NEURAL NETWORK TESTS PASSED                                      ║"
+        );
+        println!(
+            "{}",
+            "║  The thermodynamic system successfully trains real neural networks!      ║"
+        );
     } else {
-        println!("{}",
-            "║  ✗ SOME TESTS FAILED                                                    ║");
+        println!(
+            "{}",
+            "║  ✗ SOME TESTS FAILED                                                    ║"
+        );
     }
-    println!("{}",
-        "╚══════════════════════════════════════════════════════════════════════════╝");
+    println!(
+        "{}",
+        "╚══════════════════════════════════════════════════════════════════════════╝"
+    );
 }
 
 fn train_xor() -> bool {
@@ -69,9 +95,8 @@ fn train_xor() -> bool {
 
     // Use simulated annealing
     let steps = 3000;
-    let mut system = ThermodynamicSystem::with_loss_function(
-        PARTICLE_COUNT, DIM, 1.0, LossFunction::MlpXor
-    );
+    let mut system =
+        ThermodynamicSystem::with_loss_function(PARTICLE_COUNT, DIM, 1.0, LossFunction::MlpXor);
 
     let start = Instant::now();
     for step in 0..steps {
@@ -84,7 +109,8 @@ fn train_xor() -> bool {
     let elapsed = start.elapsed();
 
     let particles = system.read_particles();
-    let energies: Vec<f32> = particles.iter()
+    let energies: Vec<f32> = particles
+        .iter()
         .filter(|p| !p.energy.is_nan())
         .map(|p| p.energy)
         .collect();
@@ -93,7 +119,8 @@ fn train_xor() -> bool {
     let mean_loss = energies.iter().sum::<f32>() / energies.len() as f32;
 
     // Find best network
-    let best = particles.iter()
+    let best = particles
+        .iter()
         .filter(|p| !p.energy.is_nan())
         .min_by(|a, b| a.energy.partial_cmp(&b.energy).unwrap())
         .unwrap();
@@ -120,9 +147,18 @@ fn train_xor() -> bool {
         let h1 = (best.pos[2] * x + best.pos[3] * y + best.pos[5]).tanh();
         let out = 1.0 / (1.0 + (-best.pos[6] * h0 - best.pos[7] * h1 - best.pos[8]).exp());
         let pred_class: f32 = if out > 0.5 { 1.0 } else { 0.0 };
-        let correct_str = if (pred_class - target).abs() < 0.01 { "✓" } else { "✗" };
-        if (pred_class - target).abs() < 0.01 { correct += 1; }
-        println!("    {}: pred={:.3}, target={}, {}", name, out, target, correct_str);
+        let correct_str = if (pred_class - target).abs() < 0.01 {
+            "✓"
+        } else {
+            "✗"
+        };
+        if (pred_class - target).abs() < 0.01 {
+            correct += 1;
+        }
+        println!(
+            "    {}: pred={:.3}, target={}, {}",
+            name, out, target, correct_str
+        );
     }
 
     let accuracy = correct as f32 / 4.0;
@@ -141,9 +177,8 @@ fn train_spiral() -> bool {
 
     // Use simulated annealing with more steps for harder problem
     let steps = 5000;
-    let mut system = ThermodynamicSystem::with_loss_function(
-        PARTICLE_COUNT, DIM, 2.0, LossFunction::MlpSpiral
-    );
+    let mut system =
+        ThermodynamicSystem::with_loss_function(PARTICLE_COUNT, DIM, 2.0, LossFunction::MlpSpiral);
 
     let start = Instant::now();
     for step in 0..steps {
@@ -156,7 +191,8 @@ fn train_spiral() -> bool {
     let elapsed = start.elapsed();
 
     let particles = system.read_particles();
-    let energies: Vec<f32> = particles.iter()
+    let energies: Vec<f32> = particles
+        .iter()
         .filter(|p| !p.energy.is_nan())
         .map(|p| p.energy)
         .collect();
@@ -169,7 +205,10 @@ fn train_spiral() -> bool {
     println!("  Results:");
     println!("    Min loss (BCE): {:.6}", min_loss);
     println!("    Mean loss:      {:.6}", mean_loss);
-    println!("    Low loss (<0.5): {:.1}%", low_loss as f32 / energies.len() as f32 * 100.0);
+    println!(
+        "    Low loss (<0.5): {:.1}%",
+        low_loss as f32 / energies.len() as f32 * 100.0
+    );
 
     // Spiral is harder - we just want low loss
     let passed = min_loss < 0.7;
