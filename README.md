@@ -33,8 +33,10 @@ Built-in loss functions for testing:
 - Rosenbrock (narrow valley)
 - Rastrigin (highly multimodal)
 - Ackley (flat outer region)
+- Schwefel (deceptive global minimum far from origin)
 
 ### Advanced Techniques
+- **Adaptive Annealing**: Smart temperature scheduling with convergence detection and reheating
 - **Parallel Tempering**: Replica exchange between temperature levels for better global search
 - **Bayesian Posterior Sampling**: Verified Boltzmann distribution sampling at moderate temperatures
 - **Simulated Annealing**: Automatic temperature scheduling
@@ -69,6 +71,11 @@ cargo run --release --features gpu --bin hyperparam-tuning
 
 # Interactive visualization
 cargo run --release --features "gpu viz" --bin thermodynamic-viz
+
+# Annealing visualizations (press S to switch functions)
+cargo run --release --features "gpu viz" --bin adaptive-annealing
+cargo run --release --features "gpu viz" --bin rastrigin-annealing
+cargo run --release --features "gpu viz" --bin schwefel-annealing
 ```
 
 ## Usage as Library
@@ -135,6 +142,7 @@ system.set_repulsion_samples(particle_count as u32); // Full O(n²)
 | MLP XOR | `MlpXor` | 9 | Real MLP on XOR problem |
 | MLP Spiral | `MlpSpiral` | 9 | Spiral classification |
 | MLP Deep | `MlpDeep` | 37 | 3-layer MLP on circles |
+| Schwefel | `Schwefel` | N | Deceptive, global min at (420.97,...) |
 
 ## Benchmark Results
 
@@ -163,6 +171,17 @@ SCALING WITH PARTICLE COUNT (K=64 samples)
 | XOR MLP | 100% accuracy |
 | Parallel Tempering vs Annealing | Wins on Rastrigin (3.15 vs 9.18) |
 
+### Adaptive vs Fixed Annealing
+
+The adaptive scheduler outperforms fixed exponential cooling on deceptive landscapes:
+
+| Function | Fixed Schedule | Adaptive Schedule | Winner |
+|----------|---------------|-------------------|--------|
+| Rastrigin | 0.00 (T=0.05 at 54%) | 0.00 (T=0.001 at 54%) | **Adaptive** (faster convergence) |
+| Schwefel | 118.68 (stuck at local min) | 0.00 (found global min) | **Adaptive** (16 reheats) |
+
+On Schwefel, the global minimum at (420.97, 420.97) is far from the origin. Fixed schedules cool too fast and get trapped; adaptive detects stalls and reheats to escape local minima.
+
 ## Entropy Generation
 
 At high temperature (T >> 1), the system generates cryptographic-quality randomness:
@@ -179,15 +198,19 @@ cargo run --release --features gpu -- raw 10000000 | ent
 
 ```
 src/
+├── lib.rs                # Public API exports
 ├── thermodynamic.rs      # Core unified system
 ├── shaders/
 │   └── thermodynamic.wgsl # GPU compute shader
-├── benchmark.rs          # Performance profiling
-├── deep_nn_benchmark.rs  # 37-param MLP test
-├── optimizer_comparison.rs # SGD/Adam/Thermodynamic
-├── parallel_tempering.rs # Replica exchange
-├── bayesian_sampling.rs  # Posterior sampling demo
-└── hyperparam_tuning.rs  # ML hyperparameter search
+└── bin/                  # Executable demos
+    ├── adaptive-annealing.rs   # Fixed vs adaptive comparison
+    ├── rastrigin-annealing.rs  # Rastrigin visualization
+    ├── schwefel-annealing.rs   # Schwefel visualization
+    ├── thermodynamic-viz.rs    # Interactive visualization
+    ├── optimizer-comparison.rs # SGD/Adam/Thermodynamic
+    ├── parallel-tempering.rs   # Replica exchange
+    ├── bayesian-sampling.rs    # Posterior sampling demo
+    └── ...                     # More benchmarks
 ```
 
 ## Dependencies
