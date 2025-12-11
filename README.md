@@ -76,7 +76,49 @@ cargo run --release --features "gpu viz" --bin thermodynamic-viz
 cargo run --release --features "gpu viz" --bin adaptive-annealing
 cargo run --release --features "gpu viz" --bin rastrigin-annealing
 cargo run --release --features "gpu viz" --bin schwefel-annealing
+
+# NEW: Demos showing capabilities beyond gradient descent
+cargo run --release --features gpu --bin mode-discovery       # Find ALL modes
+cargo run --release --features gpu --bin bayesian-uncertainty # Uncertainty quantification
 ```
+
+## What Thermodynamic Sampling Can Do (That Gradient Descent Can't)
+
+### 1. Multi-Modal Mode Discovery
+
+Standard gradient descent converges to ONE local minimum. Thermodynamic sampling with SVGD repulsion finds ALL modes:
+
+```
+$ cargo run --release --features gpu --bin mode-discovery
+
+Energy landscape: E(x,y) = (x² - 4)² + (y² - 4)²
+Known minima at: (-2,-2), (-2,+2), (+2,-2), (+2,+2)
+
+Gradient Descent (T→0): Particles scatter across 14 wrong clusters
+Thermodynamic + SVGD:   Finds exactly 4 true modes at (±2, ±2)
+
+4D Hypercube Test: Discovered 16/16 modes of {-1,+1}^4
+```
+
+The SVGD repulsion term prevents mode collapse - particles push each other apart to cover the full landscape.
+
+### 2. Bayesian Uncertainty Quantification
+
+Instead of finding ONE weight vector, sample from the posterior p(weights|data) to get uncertainty:
+
+```
+$ cargo run --release --features gpu --bin bayesian-uncertainty
+
+Testing predictions with uncertainty from posterior samples:
+
+    x1     x2   y_true     y_mean      y_std     region
+--------------------------------------------------------------
+  0.00   0.00      0.0     0.0603     0.0516   training  ← confident
+  0.50   0.50      0.5     0.3996     0.4492     interp  ← uncertain
+  2.00   0.00        ?     0.7449     0.3395     extrap  ← very uncertain
+```
+
+Key insight: uncertainty tells you WHERE the model is confident. Training points show low std (~0.05), extrapolation shows high std (~0.35).
 
 ## Usage as Library
 

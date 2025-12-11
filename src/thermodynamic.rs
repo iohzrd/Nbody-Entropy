@@ -478,10 +478,28 @@ impl ThermodynamicSystem {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-        // Generate custom shader with injected loss function
+        // Generate custom shader by replacing stub functions with real ones
         let custom_wgsl = expr.to_wgsl();
         let base_shader = include_str!("shaders/thermodynamic.wgsl");
-        let full_shader = format!("{}\n\n{}", custom_wgsl, base_shader);
+
+        // Find and replace the stub functions
+        let stub_marker = "// Stub functions for custom expressions";
+        let stub_end = "// 2D neural net:";
+
+        let full_shader = if let Some(stub_start) = base_shader.find(stub_marker) {
+            if let Some(stub_end_pos) = base_shader[stub_start..].find(stub_end) {
+                // Replace stubs with custom implementation
+                let before = &base_shader[..stub_start];
+                let after = &base_shader[stub_start + stub_end_pos..];
+                format!("{}{}\n\n{}", before, custom_wgsl, after)
+            } else {
+                // Fallback: prepend
+                format!("{}\n\n{}", custom_wgsl, base_shader)
+            }
+        } else {
+            // Fallback: prepend
+            format!("{}\n\n{}", custom_wgsl, base_shader)
+        };
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("thermodynamic_custom"),

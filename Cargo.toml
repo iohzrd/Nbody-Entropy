@@ -120,3 +120,18 @@ required-features = ["gpu"]
 name = "high-dim-benchmark"
 path = "src/bin/high-dim-benchmark.rs"
 required-features = ["gpu"]
+
+[[bin]]
+name = "custom-expr-demo"
+path = "src/bin/custom-expr-demo.rs"
+required-features = ["gpu"]
+
+[[bin]]
+name = "bayesian-uncertainty"
+path = "src/bin/bayesian-uncertainty.rs"
+required-features = ["gpu"]
+
+[[bin]]
+name = "mode-discovery"
+path = "src/bin/mode-discovery.rs"
+required-features = ["gpu"]

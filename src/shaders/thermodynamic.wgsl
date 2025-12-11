@@ -74,6 +74,27 @@ fn randn(seed1: u32, seed2: u32) -> f32 {
     return sqrt(-2.0 * log(u1)) * cos(6.283185307 * u2);
 }
 
+// Stub functions for custom expressions - these are overridden when using with_expr()
+// They must exist for the shader to compile even when LossFunction::Custom isn't used
+fn custom_loss(pos: array<f32, 64>, dim: u32) -> f32 {
+    // Default: sphere function
+    var sum = 0.0;
+    for (var i = 0u; i < dim; i = i + 1u) {
+        sum = sum + pos[i] * pos[i];
+    }
+    return sum;
+}
+
+fn custom_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {
+    // Numerical gradient
+    let eps = 0.001;
+    var pos_plus = pos;
+    var pos_minus = pos;
+    pos_plus[d_idx] = pos[d_idx] + eps;
+    pos_minus[d_idx] = pos[d_idx] - eps;
+    return (custom_loss(pos_plus, dim) - custom_loss(pos_minus, dim)) / (2.0 * eps);
+}
+
 // 2D neural net: y = w2 * tanh(w1 * x)
 fn nn_loss_2d(w1: f32, w2: f32) -> f32 {
     var sum = 0.0;
