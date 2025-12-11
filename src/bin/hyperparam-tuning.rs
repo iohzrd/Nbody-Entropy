@@ -6,7 +6,7 @@
 //! We simulate an ML training process and use particles to explore the
 //! hyperparameter space to find optimal settings.
 
-use nbody_entropy::thermodynamic::{LossFunction, ThermodynamicSystem};
+use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 use std::time::Instant;
 
 // Simulated ML training: returns validation loss given hyperparameters

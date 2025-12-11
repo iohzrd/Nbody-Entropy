@@ -10,7 +10,7 @@ use iced::keyboard;
 use iced::mouse;
 use iced::widget::{canvas, container, Column, Text};
 use iced::{event, Color, Element, Event, Length, Point, Rectangle, Renderer, Subscription, Theme};
-use nbody_entropy::thermodynamic::{LossFunction, ThermodynamicParticle, ThermodynamicSystem};
+use temper::thermodynamic::{LossFunction, ThermodynamicParticle, ThermodynamicSystem};
 
 const PARTICLE_COUNT: usize = 1000; // More particles to explore
 const DIM: usize = 2;

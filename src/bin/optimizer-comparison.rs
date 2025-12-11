@@ -9,7 +9,7 @@
 //! - Multimodal (Rastrigin): Particle methods better at avoiding local minima
 //! - Neural Network (XOR): Real-world non-convex optimization
 
-use nbody_entropy::thermodynamic::{LossFunction, ThermodynamicSystem};
+use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 use std::time::Instant;
 
 // ============================================================================

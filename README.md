@@ -1,4 +1,4 @@
-# N-Body Entropy
+# Temper
 
 A GPU-accelerated **unified thermodynamic particle system** that demonstrates optimization, Bayesian sampling, and entropy generation are all the same algorithm at different temperatures.
 
@@ -123,7 +123,7 @@ Key insight: uncertainty tells you WHERE the model is confident. Training points
 ## Usage as Library
 
 ```rust
-use nbody_entropy::thermodynamic::{ThermodynamicSystem, LossFunction};
+use temper::thermodynamic::{ThermodynamicSystem, LossFunction};
 
 // Create system: 1000 particles, 4 dimensions, temperature 0.1
 let mut system = ThermodynamicSystem::with_loss_function(
@@ -163,7 +163,7 @@ for step in 0..5000 {
 The `AdaptiveScheduler` automatically adjusts cooling rate based on optimization progress:
 
 ```rust
-use nbody_entropy::{AdaptiveScheduler, ThermodynamicSystem, LossFunction};
+use temper::{AdaptiveScheduler, ThermodynamicSystem, LossFunction};
 
 let mut system = ThermodynamicSystem::with_loss_function(
     500, 8, 5.0, LossFunction::Rastrigin
@@ -214,8 +214,8 @@ system.set_repulsion_samples(particle_count as u32); // Full O(n²)
 Define custom loss functions using a composable DSL that compiles to GPU-accelerated WGSL:
 
 ```rust
-use nbody_entropy::expr::*;
-use nbody_entropy::ThermodynamicSystem;
+use temper::expr::*;
+use temper::ThermodynamicSystem;
 
 // Griewank function: 1 + sum(x²/4000) - prod(cos(x/√(i+1)))
 let griewank = const_(1.0)

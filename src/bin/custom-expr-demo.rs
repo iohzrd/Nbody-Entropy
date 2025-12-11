@@ -5,8 +5,8 @@
 //!
 //! Run with: cargo run --release --features gpu --bin custom-expr-demo
 
-use nbody_entropy::expr::*;
-use nbody_entropy::ThermodynamicSystem;
+use temper::expr::*;
+use temper::ThermodynamicSystem;
 
 fn main() {
     println!("Custom Expression Loss Function Demo");

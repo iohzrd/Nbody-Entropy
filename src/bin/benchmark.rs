@@ -3,7 +3,7 @@
 //! Profiles the thermodynamic particle system at various scales to identify
 //! bottlenecks and measure optimization improvements.
 
-use nbody_entropy::thermodynamic::{LossFunction, ThermodynamicSystem};
+use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 use std::time::Instant;
 
 fn main() {

@@ -8,8 +8,8 @@
 //!
 //! Run with: cargo run --release --features gpu --bin mode-discovery
 
-use nbody_entropy::expr::*;
-use nbody_entropy::ThermodynamicSystem;
+use temper::expr::*;
+use temper::ThermodynamicSystem;
 use std::collections::HashMap;
 
 fn main() {
@@ -128,7 +128,7 @@ fn main() {
 }
 
 /// Find distinct modes in 2D by clustering particles
-fn find_modes(particles: &[nbody_entropy::ThermodynamicParticle], dim: usize) -> Vec<((f32, f32), usize)> {
+fn find_modes(particles: &[temper::ThermodynamicParticle], dim: usize) -> Vec<((f32, f32), usize)> {
     let threshold = 0.5; // Consider particles within 0.5 as same mode
     let mut mode_counts: HashMap<(i32, i32), usize> = HashMap::new();
 
@@ -157,7 +157,7 @@ fn find_modes(particles: &[nbody_entropy::ThermodynamicParticle], dim: usize) ->
 }
 
 /// Count how many of the 16 corners of {-1,+1}^4 have nearby particles
-fn find_modes_4d(particles: &[nbody_entropy::ThermodynamicParticle]) -> usize {
+fn find_modes_4d(particles: &[temper::ThermodynamicParticle]) -> usize {
     let threshold = 0.5;
     let mut found = std::collections::HashSet::new();
 

@@ -10,7 +10,7 @@
 //! - Swaps allow good solutions to propagate to cold replicas
 //! - Much better at escaping local minima than single-temperature runs
 
-use nbody_entropy::thermodynamic::{LossFunction, ThermodynamicSystem, ThermodynamicParticle};
+use temper::thermodynamic::{LossFunction, ThermodynamicSystem, ThermodynamicParticle};
 use std::time::Instant;
 
 /// Parallel tempering system with multiple temperature replicas

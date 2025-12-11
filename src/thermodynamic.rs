@@ -364,8 +364,8 @@ impl ThermodynamicSystem {
     ///
     /// # Example
     /// ```ignore
-    /// use nbody_entropy::expr::*;
-    /// use nbody_entropy::ThermodynamicSystem;
+    /// use temper::expr::*;
+    /// use temper::ThermodynamicSystem;
     ///
     /// // Griewank function
     /// let griewank = const_(1.0)
@@ -868,7 +868,7 @@ pub struct ThermodynamicStats {
 ///
 /// # Example
 /// ```ignore
-/// use nbody_entropy::{ThermodynamicSystem, AdaptiveScheduler, LossFunction};
+/// use temper::{ThermodynamicSystem, AdaptiveScheduler, LossFunction};
 ///
 /// let mut system = ThermodynamicSystem::with_loss_function(
 ///     500, 8, 5.0, LossFunction::Rastrigin

@@ -10,7 +10,7 @@
 //! This benchmark establishes the claim that interacting particle systems
 //! are a universal computational primitive controlled by temperature.
 
-use nbody_entropy::thermodynamic::{ThermodynamicMode, ThermodynamicSystem};
+use temper::thermodynamic::{ThermodynamicMode, ThermodynamicSystem};
 use std::time::Instant;
 
 const PARTICLE_COUNT: usize = 1000;

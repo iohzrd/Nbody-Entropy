@@ -4,7 +4,7 @@
 //!
 //! # Example
 //! ```ignore
-//! use nbody_entropy::expr::*;
+//! use temper::expr::*;
 //!
 //! // Griewank function: 1 + sum(x^2/4000) - prod(cos(x/sqrt(i)))
 //! let griewank = const_(1.0)

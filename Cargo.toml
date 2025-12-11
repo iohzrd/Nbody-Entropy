@@ -1,5 +1,5 @@
 [package]
-name = "nbody-entropy"
+name = "temper"
 version = "0.1.0"
 edition = "2024"
 description = "GPU-accelerated thermodynamic particle system for optimization, sampling, and entropy"

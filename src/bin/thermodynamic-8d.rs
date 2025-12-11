@@ -5,7 +5,7 @@
 //!
 //! This proves the system scales beyond 2D toy problems.
 
-use nbody_entropy::thermodynamic::{ThermodynamicMode, ThermodynamicSystem};
+use temper::thermodynamic::{ThermodynamicMode, ThermodynamicSystem};
 use std::time::Instant;
 
 const PARTICLE_COUNT: usize = 1000;

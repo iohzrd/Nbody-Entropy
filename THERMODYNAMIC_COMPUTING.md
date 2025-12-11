@@ -139,7 +139,7 @@ Specifically:
 
 ## The "Extropic" Connection
 
-This work originated from an entropy generation project (nbody-entropy) that used N-body gravitational dynamics to produce randomness. The insight was that:
+This work originated from an entropy generation project (temper) that used N-body gravitational dynamics to produce randomness. The insight was that:
 
 - **High temperature** → Extract entropy (original project)
 - **Medium temperature** → Sample posteriors (SVGD/Bayesian inference)
@@ -219,4 +219,4 @@ The same physics that makes particles find energy minima (T→0) also makes them
 
 ---
 
-*Generated from the nbody-entropy project. Run `cargo run --release --features gpu --bin thermodynamic-benchmark` to reproduce results.*
+*Generated from the temper project. Run `cargo run --release --features gpu --bin thermodynamic-benchmark` to reproduce results.*

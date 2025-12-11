@@ -16,7 +16,7 @@ use iced::keyboard;
 use iced::mouse;
 use iced::widget::{canvas, container, Column, Text};
 use iced::{event, Color, Element, Event, Length, Point, Rectangle, Renderer, Subscription, Theme};
-use nbody_entropy::thermodynamic::{ThermodynamicMode, ThermodynamicParticle, ThermodynamicSystem};
+use temper::thermodynamic::{ThermodynamicMode, ThermodynamicParticle, ThermodynamicSystem};
 
 const PARTICLE_COUNT: usize = 500;
 const DIM: usize = 2;

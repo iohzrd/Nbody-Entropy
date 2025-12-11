@@ -5,7 +5,7 @@
 //!
 //! Run with: cargo run --release --features gpu --bin high-dim-benchmark
 
-use nbody_entropy::{AdaptiveScheduler, LossFunction, ThermodynamicSystem};
+use temper::{AdaptiveScheduler, LossFunction, ThermodynamicSystem};
 use std::time::Instant;
 
 const PARTICLE_COUNT: usize = 500;

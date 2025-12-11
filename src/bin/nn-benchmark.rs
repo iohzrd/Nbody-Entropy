@@ -6,7 +6,7 @@
 //!
 //! This proves the system can train actual neural networks, not just toy functions.
 
-use nbody_entropy::thermodynamic::{LossFunction, ThermodynamicSystem};
+use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 use std::time::Instant;
 
 const PARTICLE_COUNT: usize = 500;

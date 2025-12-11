@@ -10,7 +10,7 @@
 //!
 //! Run with: cargo run --release --features gpu --bin bayesian-uncertainty
 
-use nbody_entropy::{ThermodynamicSystem, LossFunction};
+use temper::{ThermodynamicSystem, LossFunction};
 
 const PARTICLE_COUNT: usize = 200;
 const DIM: usize = 9; // 2->2->1 MLP: 2*2 + 2 + 2*1 + 1 = 9 params

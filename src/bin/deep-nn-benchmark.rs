@@ -6,7 +6,7 @@
 //!
 //! This proves the system can scale to larger networks with more parameters.
 
-use nbody_entropy::thermodynamic::{LossFunction, ThermodynamicSystem};
+use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 use std::time::Instant;
 
 const PARTICLE_COUNT: usize = 1000;  // More particles for higher-dim search

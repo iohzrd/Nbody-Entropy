@@ -6,7 +6,7 @@
 //! For a Gaussian mixture with known modes, we can verify the sampling is correct
 //! by checking that particle density matches the target distribution.
 
-use nbody_entropy::thermodynamic::{LossFunction, ThermodynamicSystem};
+use temper::thermodynamic::{LossFunction, ThermodynamicSystem};
 use std::collections::HashMap;
 
 // Custom loss function for a 2D Gaussian mixture (3 modes)
