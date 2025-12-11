@@ -33,6 +33,7 @@ pub enum LossFunction {
     Sphere = 5,        // Simple convex baseline
     MlpXor = 6,        // Real MLP on XOR problem (9 params)
     MlpSpiral = 7,     // Real MLP on spiral classification
+    MlpDeep = 8,       // Deep MLP: 2->4->4->1 (37 params) on circles dataset
 }
 
 impl ThermodynamicMode {
@@ -55,8 +56,8 @@ impl ThermodynamicMode {
     }
 }
 
-const MAX_DIM: usize = 16;
-const MAX_PARTICLES: usize = 4096;
+const MAX_DIM: usize = 64;
+const MAX_PARTICLES: usize = 16384;  // Support up to 16k particles
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -81,7 +82,8 @@ struct Uniforms {
     seed: u32,
     mode: u32,
     loss_fn: u32,
-    _pad: [f32; 2],
+    repulsion_samples: u32,  // 0 = skip repulsion, >0 = sample K particles (O(nK) instead of O(n²))
+    _pad: f32,
 }
 
 /// Unified thermodynamic particle system
@@ -106,6 +108,7 @@ pub struct ThermodynamicSystem {
     dt: f32,
     step: u32,
     loss_fn: LossFunction,
+    repulsion_samples: u32,  // 0 = skip, 64 = sample 64 particles (default)
     // Entropy extraction
     entropy_pool: Vec<u32>,
 }
@@ -191,6 +194,9 @@ impl ThermodynamicSystem {
         // Adaptive parameters based on temperature
         let (gamma, repulsion_strength, kernel_bandwidth, dt) = Self::params_for_temperature(temperature, dim);
 
+        // Default repulsion samples: 64 for sampling/entropy mode, 0 for optimize mode
+        let repulsion_samples = if temperature < 0.01 { 0 } else { 64 };
+
         let uniforms = Uniforms {
             particle_count: particle_count as u32,
             dim: dim as u32,
@@ -202,7 +208,8 @@ impl ThermodynamicSystem {
             seed: 12345,
             mode: ThermodynamicMode::from_temperature(temperature) as u32,
             loss_fn: LossFunction::default() as u32,
-            _pad: [0.0; 2],
+            repulsion_samples,
+            _pad: 0.0,
         };
 
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -330,6 +337,7 @@ impl ThermodynamicSystem {
             dt,
             step: 0,
             loss_fn: LossFunction::default(),
+            repulsion_samples,
             entropy_pool: Vec::new(),
         }
     }
@@ -375,6 +383,23 @@ impl ThermodynamicSystem {
         self.repulsion_strength = repulsion_strength;
         self.kernel_bandwidth = kernel_bandwidth;
         self.dt = dt;
+        // Automatically adjust repulsion samples based on mode
+        // 0 for optimization (no repulsion needed), 64 for sampling/entropy
+        self.repulsion_samples = if temperature < 0.01 { 0 } else { 64 };
+    }
+
+    /// Set the number of repulsion samples (0 = skip repulsion, >0 = sample K particles)
+    /// This controls the O(nK) vs O(n²) tradeoff:
+    /// - 0: Skip repulsion entirely (fastest, use for pure optimization)
+    /// - 64: Good default for most sampling tasks
+    /// - particle_count: Full O(n²) computation (most accurate but slowest)
+    pub fn set_repulsion_samples(&mut self, samples: u32) {
+        self.repulsion_samples = samples;
+    }
+
+    /// Get current repulsion samples setting
+    pub fn repulsion_samples(&self) -> u32 {
+        self.repulsion_samples
     }
 
     /// Set the loss function
@@ -407,7 +432,8 @@ impl ThermodynamicSystem {
             seed: self.step * 1337,
             mode: self.mode() as u32,
             loss_fn: self.loss_fn as u32,
-            _pad: [0.0; 2],
+            repulsion_samples: self.repulsion_samples,
+            _pad: 0.0,
         };
         self.queue.write_buffer(&self.uniform_buffer, 0, bytemuck::bytes_of(&uniforms));
 

@@ -10,10 +10,10 @@
 // The key insight: These are NOT three different algorithms, but ONE algorithm
 // with a temperature parameter that controls the exploration/exploitation tradeoff.
 
-// MAX_DIM = 16 to support real neural networks
+// MAX_DIM = 64 to support deeper neural networks
 struct Particle {
-    pos: array<f32, 16>,     // Position in parameter space (NN weights)
-    vel: array<f32, 16>,     // Velocity (for momentum-based dynamics)
+    pos: array<f32, 64>,     // Position in parameter space (NN weights)
+    vel: array<f32, 64>,     // Velocity (for momentum-based dynamics)
     energy: f32,             // Current loss/energy value
     entropy_bits: u32,       // Accumulated entropy bits (for extraction)
     _pad1: f32,              // Padding for alignment
@@ -34,8 +34,9 @@ struct Uniforms {
     // Loss function selector
     // 0=neural_net_2d, 1=multimodal, 2=rosenbrock, 3=rastrigin, 4=ackley, 5=sphere
     loss_fn: u32,
+    // Repulsion samples: 0 = skip repulsion, >0 = sample this many particles (O(nK) instead of O(n²))
+    repulsion_samples: u32,
     _pad1: f32,
-    _pad2: f32,
 }
 
 // Training data (same neural net task)
@@ -103,7 +104,7 @@ fn nn_gradient_2d(w1: f32, w2: f32) -> vec2<f32> {
 // N-dimensional multimodal loss function
 // Has 2^(dim/2) global minima at combinations of ±1.5 in each pair of dimensions
 // This generalizes the 2D neural net's two minima to higher dimensions
-fn multimodal_loss_nd(pos: array<f32, 16>, dim: u32) -> f32 {
+fn multimodal_loss_nd(pos: array<f32, 64>, dim: u32) -> f32 {
     var loss = 0.0;
     // Sum over pairs of dimensions
     for (var d = 0u; d < dim; d = d + 2u) {
@@ -123,7 +124,7 @@ fn multimodal_loss_nd(pos: array<f32, 16>, dim: u32) -> f32 {
 }
 
 // Gradient of N-dimensional multimodal loss
-fn multimodal_gradient_nd(pos: array<f32, 16>, dim: u32, d_idx: u32) -> f32 {
+fn multimodal_gradient_nd(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {
     let pair_idx = d_idx / 2u;
     let in_pair = d_idx % 2u;
     let d_base = pair_idx * 2u;
@@ -181,7 +182,7 @@ fn sigmoid(x: f32) -> f32 {
     return 1.0 / (1.0 + exp(-x));
 }
 
-fn mlp_xor_forward(pos: array<f32, 16>, input: vec2<f32>) -> f32 {
+fn mlp_xor_forward(pos: array<f32, 64>, input: vec2<f32>) -> f32 {
     // Layer 1: input (2) -> hidden (2) with tanh
     let h0 = tanh(pos[0] * input.x + pos[1] * input.y + pos[4]);
     let h1 = tanh(pos[2] * input.x + pos[3] * input.y + pos[5]);
@@ -191,7 +192,7 @@ fn mlp_xor_forward(pos: array<f32, 16>, input: vec2<f32>) -> f32 {
     return out;
 }
 
-fn mlp_xor_loss(pos: array<f32, 16>) -> f32 {
+fn mlp_xor_loss(pos: array<f32, 64>) -> f32 {
     var total_loss = 0.0;
     for (var i = 0u; i < 4u; i = i + 1u) {
         let pred = mlp_xor_forward(pos, XOR_X[i]);
@@ -204,7 +205,7 @@ fn mlp_xor_loss(pos: array<f32, 16>) -> f32 {
     return total_loss / 4.0;
 }
 
-fn mlp_xor_gradient(pos: array<f32, 16>, d_idx: u32) -> f32 {
+fn mlp_xor_gradient(pos: array<f32, 64>, d_idx: u32) -> f32 {
     // Numerical gradient (more stable for complex networks)
     let eps = 0.001;
     var pos_plus = pos;
@@ -226,7 +227,7 @@ fn spiral_point(idx: u32, cls: u32) -> vec2<f32> {
     return vec2<f32>(r * cos(theta), r * sin(theta));
 }
 
-fn mlp_spiral_loss(pos: array<f32, 16>) -> f32 {
+fn mlp_spiral_loss(pos: array<f32, 64>) -> f32 {
     var total_loss = 0.0;
 
     // Sample points from both spirals
@@ -248,7 +249,7 @@ fn mlp_spiral_loss(pos: array<f32, 16>) -> f32 {
     return total_loss / f32(2u * SPIRAL_SIZE);
 }
 
-fn mlp_spiral_gradient(pos: array<f32, 16>, d_idx: u32) -> f32 {
+fn mlp_spiral_gradient(pos: array<f32, 64>, d_idx: u32) -> f32 {
     let eps = 0.001;
     var pos_plus = pos;
     var pos_minus = pos;
@@ -258,13 +259,92 @@ fn mlp_spiral_gradient(pos: array<f32, 16>, d_idx: u32) -> f32 {
 }
 
 // ============================================================================
+// DEEP MLP - 3 LAYER NETWORK ON CIRCLES DATASET
+// ============================================================================
+// Network: 2 inputs -> 4 hidden (tanh) -> 4 hidden (tanh) -> 1 output (sigmoid)
+// Parameters (37 total):
+//   pos[0..7]   = W1 (2x4 input->hidden1 weights)
+//   pos[8..11]  = b1 (4 hidden1 biases)
+//   pos[12..27] = W2 (4x4 hidden1->hidden2 weights)
+//   pos[28..31] = b2 (4 hidden2 biases)
+//   pos[32..35] = W3 (4x1 hidden2->output weights)
+//   pos[36]     = b3 (1 output bias)
+const DEEP_DIM: u32 = 37u;
+const CIRCLES_SIZE: u32 = 50u;
+
+// Generate points on two concentric circles (classification task)
+fn circles_point(idx: u32, cls: u32) -> vec2<f32> {
+    let theta = f32(idx) / f32(CIRCLES_SIZE) * 2.0 * PI;
+    let r = select(0.5, 1.5, cls == 1u);  // Inner circle r=0.5, outer r=1.5
+    // Add slight noise for realism
+    let noise = f32(hash(idx + cls * 1000u) & 0xFFu) / 255.0 * 0.1 - 0.05;
+    return vec2<f32>((r + noise) * cos(theta), (r + noise) * sin(theta));
+}
+
+fn mlp_deep_forward(pos: array<f32, 64>, input: vec2<f32>) -> f32 {
+    // Layer 1: input (2) -> hidden1 (4) with tanh
+    // W1 is stored as [w00, w01, w10, w11, w20, w21, w30, w31] (4 neurons x 2 inputs)
+    let h1_0 = tanh(pos[0] * input.x + pos[1] * input.y + pos[8]);
+    let h1_1 = tanh(pos[2] * input.x + pos[3] * input.y + pos[9]);
+    let h1_2 = tanh(pos[4] * input.x + pos[5] * input.y + pos[10]);
+    let h1_3 = tanh(pos[6] * input.x + pos[7] * input.y + pos[11]);
+
+    // Layer 2: hidden1 (4) -> hidden2 (4) with tanh
+    // W2 is 4x4 stored row-major at pos[12..27], b2 at pos[28..31]
+    let h2_0 = tanh(pos[12] * h1_0 + pos[13] * h1_1 + pos[14] * h1_2 + pos[15] * h1_3 + pos[28]);
+    let h2_1 = tanh(pos[16] * h1_0 + pos[17] * h1_1 + pos[18] * h1_2 + pos[19] * h1_3 + pos[29]);
+    let h2_2 = tanh(pos[20] * h1_0 + pos[21] * h1_1 + pos[22] * h1_2 + pos[23] * h1_3 + pos[30]);
+    let h2_3 = tanh(pos[24] * h1_0 + pos[25] * h1_1 + pos[26] * h1_2 + pos[27] * h1_3 + pos[31]);
+
+    // Layer 3: hidden2 (4) -> output (1) with sigmoid
+    // W3 at pos[32..35], b3 at pos[36]
+    let out = sigmoid(pos[32] * h2_0 + pos[33] * h2_1 + pos[34] * h2_2 + pos[35] * h2_3 + pos[36]);
+    return out;
+}
+
+fn mlp_deep_loss(pos: array<f32, 64>) -> f32 {
+    var total_loss = 0.0;
+
+    // Sample points from both circles
+    for (var i = 0u; i < CIRCLES_SIZE; i = i + 1u) {
+        // Inner circle (class 0)
+        let p0 = circles_point(i, 0u);
+        let pred0 = mlp_deep_forward(pos, p0);
+        let eps = 0.0001;
+        let p0_clamped = clamp(pred0, eps, 1.0 - eps);
+        total_loss = total_loss - log(1.0 - p0_clamped);  // Target = 0
+
+        // Outer circle (class 1)
+        let p1 = circles_point(i, 1u);
+        let pred1 = mlp_deep_forward(pos, p1);
+        let p1_clamped = clamp(pred1, eps, 1.0 - eps);
+        total_loss = total_loss - log(p1_clamped);  // Target = 1
+    }
+
+    return total_loss / f32(2u * CIRCLES_SIZE);
+}
+
+fn mlp_deep_gradient(pos: array<f32, 64>, d_idx: u32) -> f32 {
+    // Only compute gradient for active parameters
+    if d_idx >= DEEP_DIM {
+        return 0.0;
+    }
+    let eps = 0.001;
+    var pos_plus = pos;
+    var pos_minus = pos;
+    pos_plus[d_idx] = pos[d_idx] + eps;
+    pos_minus[d_idx] = pos[d_idx] - eps;
+    return (mlp_deep_loss(pos_plus) - mlp_deep_loss(pos_minus)) / (2.0 * eps);
+}
+
+// ============================================================================
 // CLASSIC OPTIMIZATION BENCHMARK FUNCTIONS
 // ============================================================================
 
 // Rosenbrock function (N-dimensional)
 // Global minimum: f(1,1,...,1) = 0
 // Famous "banana valley" - tests ability to follow narrow curved valleys
-fn rosenbrock_loss(pos: array<f32, 16>, dim: u32) -> f32 {
+fn rosenbrock_loss(pos: array<f32, 64>, dim: u32) -> f32 {
     var sum = 0.0;
     for (var i = 0u; i < dim - 1u; i = i + 1u) {
         let x_i = pos[i];
@@ -274,7 +354,7 @@ fn rosenbrock_loss(pos: array<f32, 16>, dim: u32) -> f32 {
     return sum;
 }
 
-fn rosenbrock_gradient(pos: array<f32, 16>, dim: u32, d_idx: u32) -> f32 {
+fn rosenbrock_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {
     var grad = 0.0;
     let x_i = pos[d_idx];
 
@@ -298,7 +378,7 @@ fn rosenbrock_gradient(pos: array<f32, 16>, dim: u32, d_idx: u32) -> f32 {
 // Highly multimodal with regular grid of local minima - tests global search
 const PI: f32 = 3.14159265359;
 
-fn rastrigin_loss(pos: array<f32, 16>, dim: u32) -> f32 {
+fn rastrigin_loss(pos: array<f32, 64>, dim: u32) -> f32 {
     var sum = 10.0 * f32(dim);
     for (var i = 0u; i < dim; i = i + 1u) {
         let x = pos[i];
@@ -307,7 +387,7 @@ fn rastrigin_loss(pos: array<f32, 16>, dim: u32) -> f32 {
     return sum;
 }
 
-fn rastrigin_gradient(pos: array<f32, 16>, dim: u32, d_idx: u32) -> f32 {
+fn rastrigin_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {
     let x = pos[d_idx];
     return 2.0 * x + 20.0 * PI * sin(2.0 * PI * x);
 }
@@ -315,7 +395,7 @@ fn rastrigin_gradient(pos: array<f32, 16>, dim: u32, d_idx: u32) -> f32 {
 // Ackley function (N-dimensional)
 // Global minimum: f(0,0,...,0) = 0
 // Nearly flat outer region with deep hole at center - tests exploitation
-fn ackley_loss(pos: array<f32, 16>, dim: u32) -> f32 {
+fn ackley_loss(pos: array<f32, 64>, dim: u32) -> f32 {
     let a = 20.0;
     let b = 0.2;
     let c = 2.0 * PI;
@@ -332,7 +412,7 @@ fn ackley_loss(pos: array<f32, 16>, dim: u32) -> f32 {
     return -a * exp(-b * sqrt(sum_sq / n)) - exp(sum_cos / n) + a + 2.71828182845;
 }
 
-fn ackley_gradient(pos: array<f32, 16>, dim: u32, d_idx: u32) -> f32 {
+fn ackley_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {
     let a = 20.0;
     let b = 0.2;
     let c = 2.0 * PI;
@@ -363,7 +443,7 @@ fn ackley_gradient(pos: array<f32, 16>, dim: u32, d_idx: u32) -> f32 {
 
 // Sphere function (N-dimensional) - simple convex baseline
 // Global minimum: f(0,0,...,0) = 0
-fn sphere_loss(pos: array<f32, 16>, dim: u32) -> f32 {
+fn sphere_loss(pos: array<f32, 64>, dim: u32) -> f32 {
     var sum = 0.0;
     for (var i = 0u; i < dim; i = i + 1u) {
         sum = sum + pos[i] * pos[i];
@@ -371,13 +451,14 @@ fn sphere_loss(pos: array<f32, 16>, dim: u32) -> f32 {
     return sum;
 }
 
-fn sphere_gradient(pos: array<f32, 16>, dim: u32, d_idx: u32) -> f32 {
+fn sphere_gradient(pos: array<f32, 64>, dim: u32, d_idx: u32) -> f32 {
     return 2.0 * pos[d_idx];
 }
 
 // ============================================================================
 
 // Pass 1: Compute pairwise repulsion (SVGD kernel gradient)
+// Optimized: Uses subsampling when repulsion_samples > 0 to achieve O(nK) instead of O(n²)
 @compute @workgroup_size(64)
 fn compute_repulsion(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let idx = global_id.x;
@@ -385,18 +466,37 @@ fn compute_repulsion(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
 
+    // Skip repulsion entirely if repulsion_samples is 0 (pure optimization mode)
+    if uniforms.repulsion_samples == 0u {
+        for (var d = 0u; d < 64u; d = d + 1u) {
+            repulsion[idx].pos[d] = 0.0;
+        }
+        return;
+    }
+
     var p_i = particles[idx];
     let h_sq = uniforms.kernel_bandwidth * uniforms.kernel_bandwidth;
 
-    for (var d = 0u; d < 16u; d = d + 1u) {
+    for (var d = 0u; d < 64u; d = d + 1u) {
         repulsion[idx].pos[d] = 0.0;
     }
 
-    // Sum repulsion from all other particles
-    for (var j = 0u; j < uniforms.particle_count; j = j + 1u) {
+    // Determine how many particles to sample
+    let sample_count = min(uniforms.repulsion_samples, uniforms.particle_count - 1u);
+
+    // Use subsampling: randomly select K particles instead of all N
+    // This reduces O(n²) to O(nK) complexity
+    for (var s = 0u; s < sample_count; s = s + 1u) {
+        // Hash-based random particle selection
+        // Different particles get different random sequences via idx mixing
+        let rng_seed = uniforms.seed + idx * 1337u + s * 7919u;
+        let j = hash(rng_seed) % uniforms.particle_count;
+
+        // Skip self
         if j == idx {
             continue;
         }
+
         var p_j = particles[j];
 
         var dist_sq = 0.0;
@@ -413,9 +513,10 @@ fn compute_repulsion(@builtin(global_invocation_id) global_id: vec3<u32>) {
         }
     }
 
-    let n = f32(uniforms.particle_count);
+    // Scale by effective sample count (importance sampling correction)
+    let effective_n = f32(sample_count);
     for (var d = 0u; d < uniforms.dim; d = d + 1u) {
-        repulsion[idx].pos[d] = repulsion[idx].pos[d] * uniforms.repulsion_strength / n;
+        repulsion[idx].pos[d] = repulsion[idx].pos[d] * uniforms.repulsion_strength / effective_n;
     }
 }
 
@@ -466,6 +567,10 @@ fn update_particles(@builtin(global_invocation_id) global_id: vec3<u32>) {
         case 7u: {
             // MLP Spiral classification
             p.energy = mlp_spiral_loss(p.pos);
+        }
+        case 8u: {
+            // Deep MLP (3-layer) on circles
+            p.energy = mlp_deep_loss(p.pos);
         }
         default: {
             p.energy = nn_loss_2d(p.pos[0], p.pos[1]);
@@ -534,6 +639,10 @@ fn update_particles(@builtin(global_invocation_id) global_id: vec3<u32>) {
             case 7u: {
                 // MLP Spiral
                 grad = mlp_spiral_gradient(p.pos, d);
+            }
+            case 8u: {
+                // Deep MLP
+                grad = mlp_deep_gradient(p.pos, d);
             }
             default: {
                 if d == 0u {

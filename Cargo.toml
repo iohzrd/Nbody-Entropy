@@ -72,3 +72,28 @@ required-features = ["gpu"]
 name = "nn-benchmark"
 path = "src/nn_benchmark.rs"
 required-features = ["gpu"]
+
+[[bin]]
+name = "deep-nn-benchmark"
+path = "src/deep_nn_benchmark.rs"
+required-features = ["gpu"]
+
+[[bin]]
+name = "optimizer-comparison"
+path = "src/optimizer_comparison.rs"
+required-features = ["gpu"]
+
+[[bin]]
+name = "parallel-tempering"
+path = "src/parallel_tempering.rs"
+required-features = ["gpu"]
+
+[[bin]]
+name = "bayesian-sampling"
+path = "src/bayesian_sampling.rs"
+required-features = ["gpu"]
+
+[[bin]]
+name = "hyperparam-tuning"
+path = "src/hyperparam_tuning.rs"
+required-features = ["gpu"]
