@@ -171,3 +171,13 @@ required-features = ["gpu"]
 name = "rgb-image-diffusion-viz"
 path = "src/bin/rgb-image-diffusion-viz.rs"
 required-features = ["viz", "gpu"]
+
+[[bin]]
+name = "landscape-viz"
+path = "src/bin/landscape-viz.rs"
+required-features = ["viz", "gpu"]
+
+[[bin]]
+name = "parallel-tempering-viz"
+path = "src/bin/parallel-tempering-viz.rs"
+required-features = ["viz", "gpu"]

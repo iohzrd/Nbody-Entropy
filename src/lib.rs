@@ -1,6 +1,10 @@
 pub mod expr;
 pub mod thermodynamic;
 
+/// Visualization utilities (requires "viz" feature)
+#[cfg(feature = "viz")]
+pub mod viz;
+
 pub use thermodynamic::{
     AdaptiveScheduler, DiversityMetrics, LossFunction, ThermodynamicMode, ThermodynamicParticle,
     ThermodynamicRng, ThermodynamicStats, ThermodynamicSystem,
