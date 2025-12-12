@@ -151,3 +151,8 @@ required-features = ["gpu"]
 name = "rng-demo"
 path = "src/bin/rng-demo.rs"
 required-features = ["gpu"]
+
+[[bin]]
+name = "image-diffusion-demo"
+path = "src/bin/image-diffusion-demo.rs"
+required-features = ["gpu"]
